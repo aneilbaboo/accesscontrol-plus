@@ -1,0 +1,23 @@
+# package directories
+node_modules
+jspm_packages
+
+# Serverless directories
+.serverless
+
+# Webpack directories
+.webpack
+
+# Misc
+.DS_Store
+.idea
+coverage
+
+# Yarn stuff
+yarn-error.log
+
+# Ignore .env files
+config/*.env
+
+# https://github.com/trek10inc/serverless-secrets#processing-during-packaging
+.serverless-secrets.json
