@@ -1,10 +1,8 @@
-import { ENGINE_METHOD_DIGESTS } from "constants";
-
 export type Context = any; // tslint:disable-line
 export type Constraint = any; // tslint:disable-line
 export type ConstraintGenerator = (context: Context) => any; // tslint:disable-line
 export type Condition = (context: Context) => boolean;
-export const All: Condition = () => true;
+export function All() { return true; }
 
 export interface IMap<T> {
   [name: string]: T;
@@ -63,55 +61,6 @@ export class RBACPlus {
     return permission;
   }
 
-  private addDenial(permission: IPermission, description: string) {
-    if (!permission.denied) {
-      permission.denied = [description];
-    } else {
-      permission.denied.push(description);
-    }
-  }
-
-  /**
-   *
-   * @param condition
-   * @param context
-   * @returns test passed or failed
-   */
-  private async testCondition(condition: Condition, context: Context): Promise<boolean> {
-    try {
-      return await condition(context);
-    } catch (e) {
-      return false;
-    }
-  }
-/**
- * Process a result of a condition, updating the permission and returning the effective value
- * of the test (true = permission granted, false = permission denied)
- *
- * @private
- * @param {boolean} conditionValue
- * @param {Effect} effect
- * @param {string} description
- * @param {IPermission} permission
- * @returns {boolean} effectiveValue
- * @memberof RBACPlus
- */
-private processResult(conditionValue: boolean, effect: Effect, description: string, permission: IPermission): boolean {
-    if (effect === 'grant') {
-      if (conditionValue) {
-        permission.granted = description;
-        return true;
-      } else { // failed to grant:
-        this.addDenial(permission, description);
-      }
-    } else { // effect === 'deny'
-      if (conditionValue) { // explicitly denied
-        this.addDenial(permission, description);
-      } // else: do nothing if deny failed
-    }
-    return false;
-  }
-
   private async canRole(
     roleName: string,
     resourceName: string,
@@ -128,12 +77,10 @@ private processResult(conditionValue: boolean, effect: Effect, description: stri
 
       if (roleResource) {
         const scope = roleResource[actionName] || roleResource['*'];
-        const condition = scope && scope.condition;
-        if (condition) {
-          const description = [roleName, resourceName, actionName, condition.name].join(':');
-          const conditionResult = await this.testCondition(condition, context);
-          const returnValue = this.processResult(conditionResult, scope.effect, description, permission);
-          if (conditionResult) { // if condition was true, we terminate search
+        if (scope) {
+          const description = [roleName, resourceName, actionName, scope.condition.name].join(':');
+          const [returnValue, terminate] = await this.processScope(scope, context, description, permission);
+          if (terminate) {
             return returnValue;
           }
         }
@@ -155,6 +102,63 @@ private processResult(conditionValue: boolean, effect: Effect, description: stri
         this.roles[roleName] = { resources: {} };
       }
     }
+
+    private addDenial(permission: IPermission, description: string) {
+      if (!permission.denied) {
+        permission.denied = [description];
+      } else {
+        permission.denied.push(description);
+      }
+    }
+
+    /**
+     *
+     * @param condition
+     * @param context
+     * @returns test passed or failed
+     */
+    private async testCondition(condition: Condition, context: Context): Promise<boolean> {
+      try {
+        return await condition(context);
+      } catch (e) {
+        return false;
+      }
+    }
+
+  /**
+   * Process a result of a condition, updating the permission and returning the effective value
+   * of the test (true = permission granted, false = permission denied)
+   *
+   * @private
+   * @param {boolean} conditionValue
+   * @param {Effect} effect
+   * @param {string} description
+   * @param {IPermission} permission
+   * @returns {Array<boolean, boolean>} effectiveValue, terminate
+   * @memberof RBACPlus
+   */
+  private async processScope(
+    scope: IScope, context: Context, description: string, permission: IPermission
+  ): Promise<[boolean, boolean]> {
+    let conditionValue = await this.testCondition(scope.condition, context);
+    if (scope.effect === 'grant') {
+      if (conditionValue) {
+        permission.granted = description;
+        if (scope.constraint) {
+          permission.constraint = scope.constraint(context);
+        }
+        return [true, conditionValue];
+      } else { // failed to grant:
+        this.addDenial(permission, description);
+      }
+    } else { // effect === 'deny'
+      if (conditionValue) { // explicitly denied
+        this.addDenial(permission, description);
+        return [false, true];
+      } // else: do nothing if deny failed
+    }
+    return [false, false];
+  }
 }
 
 export class Role extends RBACPlus {
@@ -163,8 +167,11 @@ export class Role extends RBACPlus {
   }
 
   public inherits(roleName: string) {
-    if (this._role.inherits) {
-      this._role.inherits.push(roleName);
+    const superRoles = this._role.inherits;
+    if (superRoles) {
+      if (superRoles.includes(roleName)) {
+        superRoles.push(roleName);
+      }
     } else {
       this._role.inherits = [roleName];
     }
@@ -220,7 +227,7 @@ export class Scope extends Resource {
     super(roles, roleName, effect, resourceName);
   }
 
-  public constraint(constraint: Constraint): Scope {
+  public withConstraint(constraint: Constraint): Scope {
     this._scope.constraint = constraint;
     return this;
   }

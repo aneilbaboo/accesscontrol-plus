@@ -139,6 +139,7 @@ describe('RBACPlus', async function () {
             .where(articleIsPublished)
         .grant('author').inherits('public')
           .resource('article')
+            .action('create').withConstraint(({user}) => ({ ownerId: user.id }))
             .action('read').where(userIsResourceOwner)
             .action('update').where(userIsResourceOwner)
         .grant('admin').inherits('author')
@@ -194,6 +195,21 @@ describe('RBACPlus', async function () {
     it('should allow a superadmin to do anything to user resources', async function () {
       const permission = await rbac.can('superadmin', 'user:delete', { user: superAdmin, resource: author });
       expect(permission.granted).toBeTruthy();
+    });
+
+    it('should generate a constraint from the context when the permission is granted', async function () {
+      const permission = await rbac.can('author', 'article:create', { user: author });
+      expect(permission.granted).toBeTruthy();
+      expect(permission.constraint).toBeDefined();
+      expect(permission.constraint).toEqual({
+        ownerId: author.id
+      });
+    });
+
+    it('should not generate a constraint when the permission is not granted', async function () {
+      const permission = await rbac.can('public', 'article:create', { user: author });
+      expect(permission.granted).toBeFalsy();
+      expect(permission.constraint).not.toBeDefined();
     });
   });
 });
