@@ -1,7 +1,8 @@
 {
   "name": "rbac-plus",
   "version": "1.0.2",
-  "description": "",
+  "description": "Roles-based access control with inheritance and attribute tests",
+  "keywords": ["rbac","abac", "permissions", "authorization", "roles", "scopes"],
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "scripts": {
