@@ -1,5 +1,8 @@
-// tslint:disable-next-line
-export type Context = any;
+import { ENGINE_METHOD_DIGESTS } from "constants";
+
+export type Context = any; // tslint:disable-line
+export type Constraint = any; // tslint:disable-line
+export type ConstraintGenerator = (context: Context) => any; // tslint:disable-line
 export type Condition = (context: Context) => boolean;
 export const All: Condition = () => true;
 
@@ -9,25 +12,39 @@ export interface IMap<T> {
 
 export interface IRole {
   resources: IMap<IResource>;
-  inherits: string[];
+  inherits?: string[];
 }
+
+export type Effect = 'grant' | 'deny';
 
 export interface IScope {
   condition: Condition;
+  constraint: ConstraintGenerator;
+  effect: Effect;
+}
+
+export type IRequest = string;
+
+export interface IPermission {
+  granted?: IRequest;
+  denied?: IRequest[];
+  constraint?: Constraint;
 }
 
 export type IResource = IMap<IScope>;
-
-export type IGrants = IMap<IRole>;
+export type IRoles = IMap<IRole>;
 
 export class RBACPlus {
-  constructor(public grants: IGrants = {}) {}
+  constructor(public roles: IRoles = {}) {}
 
   public grant(roleName: string) {
-    if (!this.grants[roleName]) {
-      this.grants[roleName] = { resources: {}, inherits: []};
-    }
-    return new Role(this.grants, roleName);
+    this.ensureRole(roleName);
+    return new Role(this.roles, roleName, 'grant');
+  }
+
+  public deny(roleName: string) {
+    this.ensureRole(roleName);
+    return new Role(this.roles, roleName, 'deny');
   }
 
   /**
@@ -39,53 +56,110 @@ export class RBACPlus {
    * @param scope - the permission being sought ({resource}:{action})
    * @param context - Arbitrary object providing values resolved by the where Conditions
    */
-  public can(roleNames: string | string[], scope: string, context: Context) {
+  public async can(roleName: string, scope: string, context: Context): Promise<IPermission> {
     const [resourceName, actionName] = scope.split(':');
-    if (typeof roleNames === 'string') {
-      return this.canRole(roleNames, resourceName, actionName, context);
+    let permission: IPermission = {};
+    await this.canRole(roleName, resourceName, actionName, context, permission);
+    return permission;
+  }
+
+  private addDenial(permission: IPermission, description: string) {
+    if (!permission.denied) {
+      permission.denied = [description];
     } else {
-      return roleNames.some(roleName => this.canRole(roleName, resourceName, actionName, context));
+      permission.denied.push(description);
     }
   }
 
-  private canRole(roleName: string, resourceName: string, actionName: string, context: Context): boolean {
-    const role: IRole = this.grants[roleName];
-    let result = false;
-    if (role) {
-      const roleResource = role.resources[resourceName];
+  /**
+   *
+   * @param condition
+   * @param context
+   * @returns test passed or failed
+   */
+  private async testCondition(condition: Condition, context: Context): Promise<boolean> {
+    try {
+      return await condition(context);
+    } catch (e) {
+      return false;
+    }
+  }
+/**
+ * Process a result of a condition, updating the permission and returning the effective value
+ * of the test (true = permission granted, false = permission denied)
+ *
+ * @private
+ * @param {boolean} conditionValue
+ * @param {Effect} effect
+ * @param {string} description
+ * @param {IPermission} permission
+ * @returns {boolean} effectiveValue
+ * @memberof RBACPlus
+ */
+private processResult(conditionValue: boolean, effect: Effect, description: string, permission: IPermission): boolean {
+    if (effect === 'grant') {
+      if (conditionValue) {
+        permission.granted = description;
+        return true;
+      } else { // failed to grant:
+        this.addDenial(permission, description);
+      }
+    } else { // effect === 'deny'
+      if (conditionValue) { // explicitly denied
+        this.addDenial(permission, description);
+      } // else: do nothing if deny failed
+    }
+    return false;
+  }
+
+  private async canRole(
+    roleName: string,
+    resourceName: string,
+    actionName: string,
+    context: Context,
+    permission: IPermission): Promise<boolean> {
+
+      const role: IRole = this.roles[roleName] || this.roles['*'];
+      if (!role) {
+        return false;
+      }
+
+      const roleResource = role.resources[resourceName] || role.resources['*'];
+
       if (roleResource) {
-        const scope = roleResource[actionName];
+        const scope = roleResource[actionName] || roleResource['*'];
         const condition = scope && scope.condition;
         if (condition) {
-          try {
-            if (condition(context)) {
-              return true;
-            }
-          } catch (e) {
-            // no action
+          const description = [roleName, resourceName, actionName, condition.name].join(':');
+          const conditionResult = await this.testCondition(condition, context);
+          const returnValue = this.processResult(conditionResult, scope.effect, description, permission);
+          if (conditionResult) { // if condition was true, we terminate search
+            return returnValue;
           }
         }
       }
 
-      if (role.inherits &&
-          role.inherits.some(parentRoleName => this.canRole(parentRoleName, resourceName, actionName, context))) {
-          return true;
+      if (role.inherits) {
+        for (const inheritedRole of role.inherits) {
+          if (this.canRole(inheritedRole, resourceName, actionName, context, permission)) {
+            return true;
+          }
+        }
       }
 
-      if (resourceName !== '*' && this.canRole(roleName, '*', actionName, context)) {
-        return true;
-      }
+      return false;
+    }
 
-      if (actionName !== '*' && this.canRole(roleName, resourceName, '*', context)) {
-        return true;
+    private ensureRole(roleName: string) {
+      if (!this.roles[roleName]) {
+        this.roles[roleName] = { resources: {} };
       }
     }
-    return result;
-  }
 }
+
 export class Role extends RBACPlus {
-  constructor(grants: IGrants, public readonly roleName: string) {
-    super(grants);
+  constructor(roles: IRoles, public readonly roleName: string, public readonly effect: Effect = 'grant') {
+    super(roles);
   }
 
   public inherits(roleName: string) {
@@ -97,17 +171,12 @@ export class Role extends RBACPlus {
     return this;
   }
 
-  // public permission(scope: string, where: any = All): Permission {
-  //   const [resource, operation] = scope.split(':');
-  //   return this.resource(resource).permission(operation, where);
-  // }
-
   public resource(resourceName: string): Resource {
     if (!this._role.resources.hasOwnProperty(resourceName)) {
       this._role.resources[resourceName] = {};
     }
 
-    return new Resource(this.grants, this.roleName, resourceName);
+    return new Resource(this.roles, this.roleName, this.effect, resourceName);
   }
 
   /**
@@ -118,55 +187,68 @@ export class Role extends RBACPlus {
    */
   public scope(scope: string): Scope {
     const [resource, action] = scope.split(':');
-    return this.resource(resource).scope(action);
+    return this.resource(resource).action(action);
   }
 
   protected get _role(): IRole {
-    return this.grants[this.roleName];
+    return this.roles[this.roleName];
   }
 }
 
 export class Resource extends Role {
-  constructor(grants: IGrants, roleName: string, public readonly resourceName: string) {
-    super(grants, roleName);
+  constructor(roles: IRoles, roleName: string, effect: Effect, public readonly resourceName: string) {
+    super(roles, roleName);
   }
 
   public action(actionName: string): Scope {
-    this._resource[actionName] = this._resource[actionName] || { condition: All };
-    return new Scope(this.grants, this.roleName, this.resourceName, actionName);
+    this._resource[actionName] = this._resource[actionName] || {
+      condition: All,
+      constraints: {},
+      effect: this.effect
+    };
+    return new Scope(this.roles, this.roleName, this.effect, this.resourceName, actionName);
   }
 
   protected get _resource(): IResource {
-    return this.grants[this.roleName].resources[this.resourceName];
+    return this.roles[this.roleName].resources[this.resourceName];
   }
 }
 
 export class Scope extends Resource {
-  constructor(grants: IGrants, roleName: string, resourceName: string, public readonly actionName: string) {
-    super(grants, roleName, resourceName);
+  constructor(
+    roles: IRoles, roleName: string, effect: Effect, resourceName: string, public readonly actionName: string) {
+    super(roles, roleName, effect, resourceName);
+  }
+
+  public constraint(constraint: Constraint): Scope {
+    this._scope.constraint = constraint;
+    return this;
   }
 
   public where(...conditions: Condition[]): Scope {
-    return this.and(...conditions);
+    if (conditions.length === 1) {
+      this._condition = conditions[0];
+      return this;
+    } else {
+      return this.and(...conditions);
+    }
   }
 
   public or(...conditions: Condition[]): Scope {
     const prevCondition = this.condition;
-    if (prevCondition === All) {
-      this._condition = ({...options}) => conditions.some(c => c(options));
-    } else {
-      this._condition = ({...options}) => prevCondition(options) || conditions.some(c => c(options));
-    }
+    const testConditions = prevCondition === All ? conditions : [All, ...conditions];
+    // dynamically name function:
+    const name = `or(${conditions.map(c => c.name || 'unknownCondition').join(',')}`;
+    this._condition = { [name]: ({...options}) => testConditions.some(c => c(options)) }[name];
     return this;
   }
 
   public and(...conditions: Condition[]): Scope {
     const prevCondition = this.condition;
-    if (prevCondition === All) {
-      this._condition = ({...options}) => conditions.every(c => c(options));
-    } else {
-      this._condition = ({...options}) => prevCondition(options) && conditions.every(c => c(options));
-    }
+    const testConditions = prevCondition === All ? conditions : [All, ...conditions];
+    // dynamically name function:
+    const name = `and(${conditions.map(c => c.name || 'unknownCondition').join(',')}`;
+    this._condition = { [name]: ({...options}) => testConditions.every(c => c(options)) }[name];
 
     return this;
   }

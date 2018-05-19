@@ -16,15 +16,20 @@ function articleIsPublished({resource}) {
 }
 
 const rbac = new RBACPlus();
+//
+// 4 roles: public, author, admin, superadmin
+//
 rbac
+  .deny('public') // by default, the public cannot use any resource
+    .scope('*:*')
   .grant('public')
-    .resource('article')
-        .action('read')
-          .where(articleIsPublished)
+    .scope('article:read').where(articleIsPublished)
   .grant('author').inherits('public')
     .resource('article')
-      .action('read').where(userIsResourceOwner)
-      .action('update').where(userIsResourceOwner)
+      .action('read') // === .scope('article:read')
+        .where(userIsResourceOwner)
+      .action('update') // === .scope('article:update')
+        .where(userIsResourceOwner)
   .grant('admin').inherits('author')
     .resource('article')
       .action('read').where(userImpersonatesResourceOwner)
@@ -39,27 +44,37 @@ const published = { ownerId: 1234, state: 'published', text: '...' }; // retriev
 const adminUser = { id: 999, impersonationId: 1234 };
 const superAdmin = { id: 222 };
 
-// let public read published articles
-rbac.can('public', 'article:read', { user: null, resource: published }); // =>true
+async function testPermissions {
+  let permission;
+  // public can read published articles
+  permission = await rbac.can('public', 'article:read', { user: null, resource: published });
+  // permission.granted => truthy
 
-// don't allow public to read draft articles
-rbac.can('public', 'article:read', { user: null, resource: draft }); // => false
+  // public can't read draft articles
+  permission = await rbac.can('public', 'article:read', { user: null, resource: draft });
+  // permission.granted => falsy
+  // permission.denied = ['public:article:read:articleIsPublished']
 
-// let an author read their own draft article
-  expect(rbac.can('author', 'article:read', { user, resource: draft }); // => true
-});
+  // author can read their own draft article
+  permission = rbac.can('author', 'article:read', { user, resource: draft });
+  // permission.granted => truthy
 
-// allow a user to update their own article
-rbac.can('user', 'article:update', { user: user, resource: draft }); // => true
+  // auth can update their own article
+  permission = rbac.can('user', 'article:update', { user: user, resource: draft });
+  // permission.granted => truthy
 
-// do not allow an admin to update a users article, even if they are impersonating them
-rbac.can('admin', 'article:update', { user: adminUser, resource: draft}); // => false
-    });
+  // admin cannot update an author's article, even if they are impersonating them
+  permission = rbac.can('admin', 'article:update', { user: adminUser, resource: draft});
+  // permission.granted => falsy
+  // permision.denied = [ 'author:article:update:userIsResourceOwner' ]
 
-// allow an admin to read a draft article if they are impersonating the user
-rbac.can('admin', 'article:read', { user: adminUser, resource: draft}); // => true
+  // admin can read a draft article if they are impersonating the author
+  permission = rbac.can('admin', 'article:read', { user: adminUser, resource: draft});
+  // permission.granted => truthy
 
-// allow a superadmin to do anything to user resources
-rbac.can('superadmin', 'user:delete', { user: superAdmin, resource: user }); // => true
+  // superadmin can do anything to user resources
+  permission = rbac.can('superadmin', 'user:delete', { user: superAdmin, resource: user });
+  // permission.granted => truthy
+}
 ```
 
