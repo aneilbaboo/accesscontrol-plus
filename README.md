@@ -5,13 +5,13 @@ Roles-based access control with inheritance and attribute tests.
 ```js
 import RBACPlus from 'rbac-plus';
 
-function userIsResourceOwner({user, resource}: Context) {
+function userIsResourceOwner({user, resource}) {
   return user.id === resource.ownerId;
 }
-function userImpersonatesResourceOwner({user, resource}: Context) {
+function userImpersonatesResourceOwner({user, resource}) {
   return user.impersonationId === resource.ownerId;
 }
-function articleIsPublished({resource}: Context) {
+function articleIsPublished({resource}) {
   return resource.state === 'published';
 }
 
