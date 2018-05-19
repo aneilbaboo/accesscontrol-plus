@@ -155,7 +155,7 @@ export class Scope extends Resource {
     if (prevCondition === All) {
       this._condition = ({...options}) => conditions.some(c => c(options));
     } else {
-      this._condition = ({...options}) => prevCondition(options) || conditions.some(c=> c(options));
+      this._condition = ({...options}) => prevCondition(options) || conditions.some(c => c(options));
     }
     return this;
   }
@@ -165,7 +165,7 @@ export class Scope extends Resource {
     if (prevCondition === All) {
       this._condition = ({...options}) => conditions.every(c => c(options));
     } else {
-      this._condition = ({...options}) => prevCondition(options) && conditions.every(c=> c(options));
+      this._condition = ({...options}) => prevCondition(options) && conditions.every(c => c(options));
     }
 
     return this;
