@@ -1,11 +1,13 @@
 {
   "name": "rbac-plus",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "",
-  "main": "lib/index.js",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
   "scripts": {
     "test": "jest",
-    "build": "tsc"
+    "build": "tsc",
+    "prepublish": "yarn build"
   },
   "repository": {
     "type": "git",
