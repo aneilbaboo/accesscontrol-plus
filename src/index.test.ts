@@ -1,4 +1,4 @@
-import {RBACPlus, Role, Resource, Scope} from './';
+import {RBACPlus, Role, Resource, Scope, Context} from './';
 
 describe('RBACPlus', function () {
   describe('#grant', function () {
@@ -20,6 +20,17 @@ describe('RBACPlus', function () {
     });
 
     describe('Role', function () {
+
+      describe('#inherit', function () {
+        it('should allow inheritance', function () {
+          const rbac = new RBACPlus();
+          expect(rbac.grant('user').resource('Post').grant('admin').inherits('user')).toBeInstanceOf(Role);
+          expect(rbac.grants).toEqual({
+            user: { inherits: [], resources: { Post: {} }},
+            admin: { inherits: ['user'], resources: {} }
+          });
+        });
+      });
       describe('#resource', function () {
         it('should return a resource', function () {
           const rbac = new RBACPlus();

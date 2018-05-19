@@ -3,7 +3,7 @@ export type Context = any;
 export type Condition = (context: Context) => boolean;
 export const All: Condition = () => true;
 
-interface IMap<T> {
+export interface IMap<T> {
   [name: string]: T;
 }
 
@@ -18,7 +18,7 @@ export interface IScope {
 
 export type IResource = IMap<IScope>;
 
-type IGrants = IMap<IRole>;
+export type IGrants = IMap<IRole>;
 
 export class RBACPlus {
   constructor(public grants: IGrants = {}) {}
@@ -94,6 +94,7 @@ export class Role extends RBACPlus {
     } else {
       this._role.inherits = [roleName];
     }
+    return this;
   }
 
   // public permission(scope: string, where: any = All): Permission {
