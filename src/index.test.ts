@@ -130,7 +130,7 @@ describe('RBACPlus', function () {
         .resource('user')
           .action('*');
 
-    const user = { id: 1234 }; // determined by request authentication
+    const author = { id: 1234 }; // determined by request authentication
 
     const draft = { ownerId: 1234, state: 'draft', text: '...' }; // retrieved from db
     const published = { ownerId: 1234, state: 'published', text: '...' }; // retrieved from db
@@ -146,11 +146,11 @@ describe('RBACPlus', function () {
     });
 
     it('should let an author read their own draft article', function () {
-      expect(rbac.can('author', 'article:read', { user, resource: draft })).toBeTruthy();
+      expect(rbac.can('author', 'article:read', { user: author, resource: draft })).toBeTruthy();
     });
 
     it('should let a user update their own article', function () {
-      expect(rbac.can('user', 'article:update', { user: user, resource: draft }))
+      expect(rbac.can('user', 'article:update', { user: author, resource: draft }));
     });
 
     it('should not allow an admin to update a users article, even if they are impersonating them', function () {
@@ -162,7 +162,7 @@ describe('RBACPlus', function () {
     });
 
     it('should allow a superadmin to do anything to user resources', function () {
-      expect(rbac.can('superadmin', 'user:delete', { user: superAdmin, resource: user })).toBeTruthy();
+      expect(rbac.can('superadmin', 'user:delete', { user: superAdmin, resource: author })).toBeTruthy();
     });
   });
 });
