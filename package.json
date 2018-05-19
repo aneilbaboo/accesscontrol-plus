@@ -1,6 +1,6 @@
 {
   "name": "rbac-plus",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Roles-based access control with inheritance and attribute tests",
   "keywords": [
     "rbac",
@@ -13,7 +13,8 @@
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "files": [
-    "lib"
+    "lib",
+    "LICENSE"
   ],
   "scripts": {
     "test": "jest",
@@ -25,7 +26,7 @@
     "url": "git+https://github.com/aneilbaboo/rbac-plus.git"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/aneilbaboo/rbac-plus/issues"
   },
