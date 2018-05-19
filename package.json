@@ -1,10 +1,20 @@
 {
   "name": "rbac-plus",
-  "version": "1.0.3",
+  "version": "1.0.6",
   "description": "Roles-based access control with inheritance and attribute tests",
-  "keywords": ["rbac","abac", "permissions", "authorization", "roles", "scopes"],
+  "keywords": [
+    "rbac",
+    "abac",
+    "permissions",
+    "authorization",
+    "roles",
+    "scopes"
+  ],
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
+  "files": [
+    "lib"
+  ],
   "scripts": {
     "test": "jest",
     "build": "tsc",
@@ -22,16 +32,13 @@
   "homepage": "https://github.com/aneilbaboo/rbac-plus#readme",
   "devDependencies": {
     "@types/jest": "^22.2.3",
-    "@types/lodash.get": "^4.4.3",
     "@types/node": "^10.0.6",
     "jest": "^22.4.3",
     "ts-jest": "^22.4.6",
     "tslint": "^5.10.0",
     "typescript": "^2.8.3"
   },
-  "dependencies": {
-    "lodash.get": "^4.4.2"
-  },
+  "dependencies": {},
   "jest": {
     "transform": {
       "^.+\\.ts?$": "./node_modules/ts-jest/preprocessor.js"
