@@ -28,11 +28,12 @@ npm install rbac-plus
 2. Define roles, scopes and conditions
   ```js
   rbacPlus
-    .allow('user')
+    .grant('user')
       .resource('posts')
+        .action('read').onFields('*', '!dontreadthisfield')
         .action('create')
         .action('update').where(userIsAuthor)
-    .allow('admin').inherits('user')
+    .grant('admin').inherits('user')
       .resource('users')
         .action('*');
 
@@ -170,6 +171,45 @@ if (permission.granted) {
 }
 ```
 
+#### #onFields
+Restrict the grant/denial to specific fields. Provide a list of fieldNames. Use `*` for all fields, `!{fieldName}` to exclude a field:
+
+```js
+// grant on all fields
+rbac.grant('admin').scope('user:read')
+  .onFields('*');
+rbac.can('admin', 'user:read:superPrivateData'); // permission.granted => yes
+```
+
+```js
+// deny on specific fields
+rbac.grant('admin').scope('user:read')
+  .onFields('*', '!privateData');
+rbac.can('admin', 'user:read:privateData'); // permission.granted => no
+rbac.can('admin', 'user:read:name'); // permission.granted => yes
+```
+```js
+// grant on specific fields
+rbac.grant('admin').scope('user:read')
+  .onFields('name');
+rbac.can('admin', 'user:read:name'); // permission.granted => yes
+rbac.can('admin', 'user:read:phoneNumber'); // permission.granted => no
+```
+
+#### onDynamicFields
+Generate field grants dynamically, given a context. You can use async calls, if needed:
+```js
+rbac.grant('admin').scope('user:read')
+  .onDynamicFields(async ({admin, user}: Context) => {
+    const permissive = await myBackend.adminHasPermissionFromUser(admin, user);
+    if (permissive) {
+      return { '*': true };
+    } else {
+      return { 'id': true, 'userName': true, 'phoneNumber': true };
+    }
+  });
+```
+
 ## Extended Example
 
 ```js
@@ -197,7 +237,9 @@ rbac
   .deny('public') // start by disallowing the public access to everything
     .scope('*:*')
   .grant('public')
-    .scope('article:read').where(articleIsPublished)
+    .scope('article:read')
+      .where(articleIsPublished)
+        .onFields('*', '!viewers') // allow all fields except viewers
   //
   // AUTHOR
   //

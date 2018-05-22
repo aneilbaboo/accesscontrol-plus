@@ -44,6 +44,21 @@ describe('RBACPlus', async function () {
             } } }}
           });
         });
+
+        describe('Scope', function () {
+          it('should allow adding field tests', function () {
+            const rbac = new RBACPlus();
+            expect(rbac.grant('user').scope('Post:read').onFields('*', '!a', 'b', 'c')).toBeInstanceOf(Scope);
+            expect(rbac.roles.user.resources.Post.read.fieldTest).toBeInstanceOf(Function);
+          });
+
+          it('should allow adding logical conditions', function () {
+            const rbac = new RBACPlus();
+            expect(rbac.grant('user').scope('Post:read').where((ctx: Context) => true)).toBeInstanceOf(Scope);
+            expect(rbac.grant('user').scope('Post:read').and((ctx: Context) => true)).toBeInstanceOf(Scope);
+            expect(rbac.grant('user').scope('Post:read').or((ctx: Context) => true)).toBeInstanceOf(Scope);
+          });
+        });
       });
 
       describe('#resource', function () {
@@ -117,7 +132,7 @@ describe('RBACPlus', async function () {
 
   });
 
-  describe('Given the README.md example,', async function () {
+  describe('Given the README.md example,', function () {
 
     function userIsResourceOwner({user, resource}: Context) {
       return user.id === resource.ownerId;
@@ -137,6 +152,7 @@ describe('RBACPlus', async function () {
         .grant('public')
           .scope('article:read')
             .where(articleIsPublished)
+              .onFields('allowedPublicField', '!disallowedPublicField')
         .grant('author').inherits('public')
           .resource('article')
             .action('create').withConstraint(({user}) => ({ ownerId: user.id }))
@@ -145,13 +161,15 @@ describe('RBACPlus', async function () {
         .grant('admin').inherits('author')
           .scope('article:read')
             .where(userImpersonatesResourceOwner)
+          .scope('user:read')
+            .onFields('*', '!superPrivateData')
         .grant('superadmin').inherits('admin')
           .scope('user:*');
     });
 
     const author = { id: 1234 }; // determined by request authentication
 
-    const draft = { ownerId: 1234, state: 'draft', text: '...' }; // retrieved from db
+    const draft = { ownerId: 1234, state: 'draft' }; // retrieved from db
     const published = { ownerId: 1234, state: 'published', text: '...' }; // retrieved from db
     const adminUser = { id: 999, impersonationId: 1234 };
     const superAdmin = { id: 222 };
@@ -159,13 +177,45 @@ describe('RBACPlus', async function () {
     it('should let the public read a published article', async function () {
       const permission = await rbac.can('public', 'article:read', { user: null, resource: published });
       expect(permission.granted).toBeTruthy();
+      expect(permission.denied).toBeUndefined();
+    });
+
+    it('should let the public read allowed fields on a published article', async function () {
+      const permission = await rbac.can('public', 'article:read:allowedPublicField', {
+        user: null, resource: published
+      });
+      expect(permission.granted).toBeTruthy();
+    });
+
+    it('should not let the public read disallowed fields on a published article', async function () {
+      const permission = await rbac.can('public', 'article:read:disallowedPublicField', {
+        user: null, resource: published
+      });
+      expect(permission.granted).toBeFalsy();
+      expect(permission.denied).toEqual(['public:article:read:disallowedPublicField:articleIsPublished']);
+    });
+
+    it('should not let the public read fields which have not been implicitly or explicitly allowed', async function () {
+      const permission = await rbac.can('public', 'article:read:unmentionedField', {
+        user: null, resource: published
+      });
+      expect(permission.granted).toBeFalsy();
+      expect(permission.denied).toEqual(['public:article:read:unmentionedField:articleIsPublished']);
     });
 
     it('should not let the public read an unpublished article', async function () {
       const permission = await rbac.can('public', 'article:read', { user: null, resource: draft });
       expect(permission.granted).toBeFalsy();
       expect(permission.denied).toHaveLength(1);
-      expect(permission.denied[0]).toEqual('public:article:read:articleIsPublished');
+      expect(permission.denied[0]).toEqual('public:article:read::articleIsPublished');
+    });
+
+    it('should allow an admin to read all fields on the user except explicitly denied ones', async function () {
+      const allowedScope = await rbac.can('admin', 'user:read:id', {});
+      expect(allowedScope.granted).toBeTruthy();
+
+      const disallowedScope = await rbac.can('admin', 'user:read:superPrivateData', {});
+      expect(disallowedScope.granted).toBeFalsy();
     });
 
     it('should let an author read their own draft article', async function () {
@@ -178,12 +228,12 @@ describe('RBACPlus', async function () {
       expect(permission.granted);
     });
 
-    it('should not allow an admin to update a users article, even if they are impersonating them', async function () {
+    it('should not allow an admin to update a users article, even when impersonating', async function () {
       const permission = await rbac.can('admin', 'article:update', { user: adminUser, resource: draft});
-      expect(permission.granted).toBeFalsy();
+      expect(permission.denied).toBeDefined();
       expect(permission.denied).toHaveLength(1);
       expect(permission.denied).toEqual([
-        'author:article:update:userIsResourceOwner'
+        'author:article:update::userIsResourceOwner'
       ]);
     });
 
