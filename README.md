@@ -28,11 +28,13 @@ npm install rbac-plus
 2. Define roles, scopes and conditions
   ```js
   rbacPlus
+    .deny('public').resource('*').action('*')
     .grant('user')
       .resource('posts')
-        .action('read').onFields('*', '!dontreadthisfield')
-        .action('create')
-        .action('update').where(userIsAuthor)
+        .create
+        .read.onFields('*', '!dontreadthisfield') // allow read on all fields but one
+        .update.where(userIsAuthor)
+        .delete.where(userIsAuthor)
     .grant('admin').inherits('user')
       .resource('users')
         .action('*');
@@ -43,12 +45,12 @@ npm install rbac-plus
   ```
 
 3. Test whether permission is granted
-```js
+  ```js
   let permission;
   permission = accessControl.can('user', 'posts:update', { user: {id: 123}, post: {authorId: 123}}); // permission.granted => truthy
   permission = accessControl.can('user', 'posts:update', { user: {id: 999}, post: {authorId: 123}}); // permission.granted => falsy
-  permission = accessControl.can('admin', 'users:create'); // permission.granted == true
-  permission = accessControl.can('user', 'users:create'); // permission.granted == true
+  permission = accessControl.can('admin', 'users:create'); // permission.granted => truthy
+  permission = accessControl.can('user', 'users:create'); // permission.granted => truthy
   ```
 
 ## API
@@ -60,12 +62,13 @@ Top level object which exposes the API.
 #### constructor
 ```js
 import {RBACPlus} from 'rbac-plus';
-// normally use this:
+// prepare to use the chainable interface
 const rbac = new RBACPlus();
 ```
 or
 ```js
-import {All} from 'rbac-plus'; // special condition which matches everything
+import {All} from 'rbac-plus';
+// provide permissions in constructor
 const rbac = new RBACPlus({
   admin: {
     resources: {
@@ -131,6 +134,15 @@ A resource object is obtained using the `Role.resource` method
 #### #action
 ```js
 resource.action('read'); // => Scope
+```
+
+#### CRUD shortcuts
+
+```js
+resource.create // = resource.action('create');
+resource.read   // = resource.action('read');
+resource.update // = resource.action('update');
+resource.delete // = resource.action('delete');
 ```
 
 ### Scope

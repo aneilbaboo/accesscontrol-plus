@@ -233,6 +233,22 @@ export class Resource extends Role {
     return new Scope(this.roles, this.roleName, this.effect, this.resourceName, actionName);
   }
 
+  public get create(): Scope {
+    return this.action('create');
+  }
+
+  public get read(): Scope {
+    return this.action('read');
+  }
+
+  public get update(): Scope {
+    return this.action('update');
+  }
+
+  public get delete(): Scope {
+    return this.action('update');
+  }
+
   protected get _resource(): IResource {
     return this.roles[this.roleName].resources[this.resourceName];
   }
