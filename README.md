@@ -12,46 +12,171 @@ npm install rbac-plus
 * Globbing to match roles and scopes
 * Attribute-based access control
 * Resource constraints based on permission
-* Informative grant/deny messages
+* Explains why permission granted or denied
 * Chainable API useful for modular policy definition
 * Typescript ready
 
 ## Quick start
 
-1. Create RBACPlus instance
-  ```js
-  import {RBACPlus} from 'rbac-plus';
+```js
+//
+// Create RBACPlus instance to manage a group of roles
+//
+import {RBACPlus} from 'rbac-plus';
 
-  const rbacPlus = new RBACPlus();
-  ```
+const rbacPlus = new RBACPlus();
 
-2. Define roles, scopes and conditions
-  ```js
-  rbacPlus
-    .deny('public').resource('*').action('*')
-    .grant('user')
-      .resource('posts')
-        .create
-        .read.onFields('*', '!dontreadthisfield') // allow read on all fields but one
-        .update.where(userIsAuthor)
-        .delete.where(userIsAuthor)
-    .grant('admin').inherits('user')
-      .resource('users')
-        .action('*');
+//
+// Define roles, scopes and conditions
+//
+rbacPlus
+  .deny('public').resource('*').action('*')
+  .grant('user')
+    .resource('posts')
+      .create
+      .read.onFields('*', '!dontreadthisfield') // allow read on all fields but one
+      .update.where(userIsAuthor)
+      .delete.where(userIsAuthor)
+  .grant('admin').inherits('user')
+    .resource('users')
+      .action('*');
 
-  function userIsAuthor({user, post}) {
-    return user.id == post.authorId;
-  }
-  ```
+function userIsAuthor({user, post}) {
+  return user.id == post.authorId;
+}
 
-3. Test whether permission is granted
-  ```js
-  let permission;
-  permission = accessControl.can('user', 'posts:update', { user: {id: 123}, post: {authorId: 123}}); // permission.granted => truthy
-  permission = accessControl.can('user', 'posts:update', { user: {id: 999}, post: {authorId: 123}}); // permission.granted => falsy
-  permission = accessControl.can('admin', 'users:create'); // permission.granted => truthy
-  permission = accessControl.can('user', 'users:create'); // permission.granted => truthy
-  ```
+//
+// Test whether permission is granted
+//
+let permission;
+
+permission = await rbacPlus.can('user', 'posts:create');
+// permission.granted => truthy
+
+permission = await rbacPlus.can('user', 'users:create');
+// permission.granted => falsy
+
+permission = await rbacPlus.can('admin', 'users:create');
+// permission.granted => truthy (because of inheritance)
+
+// using context:
+permission = await rbacPlus.can(
+  'user',                                   // role
+  'posts:update',                           // scope
+  { user: {id: 123}, post: {authorId: 123}} // context
+); // permission.granted => truthy
+```
+
+## Concepts
+
+### Role Based Access Control (RBAC) versus Attribute Based Access Control (ABAC)
+
+Role based authorization defines permissions in terms of roles in an organization - users, editors, authors, etc.  This is convenient, but RBAC relies on static definitions and can't use contextual information (time, location, dynamic group membership, etc) to determine access rights.  In traditional RBAC, contextual tests must be performed in other layers of an application. On the other hand, ABAC allows use of contextual information, but is also more complicated, and is [sometimes described as overkill](https://objectpartners.com/2017/06/16/abac-or-rbac/ ) for solving typical problems. For more discussion, see: https://iamfortress.net/2017/02/15/rbac-vs-abac/.
+
+### RBACPlus: RBAC with ABAC-powers
+
+This library combines useful properties of RBAC and ABAC. You define roles and permissions, making it easy to define and manage your policies, like tradition RBAC, but also implement fine-grained context-sensitive tests, like ABAC.
+
+The `RBACPlus` class provides the top-level API of this library. Use it to define role permissions (using `grant` or `deny`), add conditions using `where`, `and` and `or`, and test whether a permission (using `can`). (See [API](#API)).
+
+```typescript
+const rbac = new RBACPlus();
+rbacPlus.deny('public').scope('*:*');
+rbacPlus.grant('author').scope('post:create');
+```
+
+### Definitions
+
+#### Roles, Resources, Actions and Inheritance
+
+Each `role` (e.g., "admin" or "user") has `scopes` which **grant** or **deny** permission to perform `actions` on `resources`, potentially limited to certain `fields` of the resource.  Roles can [inherit](##inherits) scopes from other roles.
+
+#### Scopes
+
+A `scope` name is a `resource:action` pair or a `resource:action:field` triplet. For example,
+
+```js
+"post:read" // read a post resource
+"post:read:text" // read the text field of a post resource
+```
+
+##### Shorthand notations
+```js
+const userRole = rbacPlus.grant('user');
+
+// the following are all equivalent:
+userRole.scope('post:create')
+userRole.resource('post').action('create')
+userRole.resource('post').create
+```
+
+#### Permissions
+A `permission` is a plain Javascript object returned by `RBACPlus#can`:
+```typescript
+const permission: IPermission = await rbacPlus.can('user', 'post:read');
+
+// If the permission is granted
+permission.granted === "user:post:read" // or similar
+
+// if permission is denied:
+permission.denied === [ "...", "..." ] // array of strings, representing all the scopes that were tested and denied
+```
+If [constraints](##withConstraint) were defined for the scope, the permission will contain a `constraint` key.
+
+
+#### Conditions
+
+Scopes can be restricted with `conditions`, javascript sync or async functions of the form:
+
+```typescript
+type Condition = (ctx: Context)=> Promise<boolean> | boolean // type Context = any
+```
+
+Conditions should be *named* functions. The condition name is used to generate a description string, assigned to `permission.grant`
+
+```js
+// Add a condition to post:update:
+rbacPlus.grant('user').scope('post:update')
+  .where(userIsOwner); // add a condition
+
+function userIsOwner({user, resource}) {
+  return user.id === resource.ownerId;
+}
+
+permission = await rbacPlus.can('user', 'post:update',
+  { user:     { id:      1 },
+    resource: { ownerId: 1 }});
+
+permission.granted // => 'user:post:update::userIsOwner'
+```
+
+If a condition throws an error, it is treated as though it returned `false`. (Note: this may cause unexpected behavior if a condition is used to `deny`, so this behavior may change in the future, such that exceptions will be treated as `true` for `deny`).
+
+#### Context
+
+The `context` is a developer-specified value that is passed to the test function `can`, which in turn passes the value to `conditions` and fieldgen functions provided to `onDynamicFields` while attempting to find a permission grant. Arbitrary values such as the current user, the request parameters, time, environment and location can be passed in the context. See the example above under [Conditions](#Conditions).
+
+```typescript
+type Context = any;
+```
+
+#### Specifying fields
+Permissions can be granted for specific fields:
+```typescript
+rbacPlus.grant('user').resource('post').read.onFields('*', '!stats');
+// '*' - grant permission to all fields
+// 'name' - grant permission to a specific field
+// '!name' - disallow permission for a specific field
+```
+Field permissions can also be calculated dynamically be providing a function (which can be async). The function returns an Object mapping field names to boolean values indicating whether the field is granted or not.
+E.g., the following is equivalent to the `onFields` call shown above.
+```typescript
+rbacPlus.grant('user').resource('post').read.onDynamicFields((ctx: Context) => ({
+  '*': true, // grant all fields
+  stats: false
+}));
+```
+
 
 ## API
 
@@ -62,15 +187,12 @@ Top level object which exposes the API.
 #### constructor
 ```js
 import {RBACPlus} from 'rbac-plus';
-// prepare to use the chainable interface
 const rbac = new RBACPlus();
-```
-or
-```js
-import {All} from 'rbac-plus';
-// provide permissions in constructor
-const rbac = new RBACPlus({
-  admin: {
+
+// alternatively, define permissions in the constructor:
+import {RBACPlus, All} from 'rbac-plus';
+const rbac = new RBACPlus({ // this is the underlying structure the API builds
+  admin: {                  // and uses to determine permissions
     resources: {
       user: {
         delete: {
@@ -85,24 +207,24 @@ const rbac = new RBACPlus({
 ```
 
 #### #can
-Returns a permission indicating whether the given role can access the scope:
+Async function returning a permission indicating whether the given role can access the scope:
 ```js
 // context is a developer-defined value passed to conditions
 // (see Scope #where, #and, #or)
 const context = { user: { id: 'the-user-id' } };
-rbac.can('admin', 'delete:user', context);
+await rbacPlus.can('admin', 'delete:user', context);
 ```
 
 #### #grant
 Returns a Role object which will grant permissions
 ```js
-rbac.grant('admin') // => Role instance
+rbacPlus.grant('admin') // => Role instance
 ```
 
 #### #deny
 Returns a Role object which will grant permissions
 ```js
-rbac.deny('admin') // => Role instance
+rbacPlus.deny('admin') // => Role instance
 ```
 
 #### #roles
@@ -111,7 +233,7 @@ rbac.deny('admin') // => Role instance
 Represents a named role.
 
 #### #inherits
-Inherit permissions from another role:
+Inherit scopes from another role:
 ```js
 role.inherits('public'); // => Role instance
 ```
@@ -162,22 +284,22 @@ scope.where(ownsResource); // => Scope
 #### #and
 Grants permission for the scope if all of the tests return truthy values:
 ```js
-scope.and(test1, test2, test3...);
+scope.and(test1, test2, test3...); // => Scope
 ```
 
 #### #or
 Grants permission for the scope if any of the tests return a truthy value:
 ```js
-scope.or(test1, test2, test3...);
+scope.or(test1, test2, test3...); // => Scope
 ```
 
 #### #withConstraint
 Add a function which returns a constraint useful to the developer for passing to a function that accesses a resource:
 ```js
-rbac.grant('user').scope('article:create')
+rbacPlus.grant('user').scope('article:create')
   .withConstraint(({user})=>({ ownerId: user.id})); // => Scope
 ...
-let permission = await rbac.can('user', 'article:create', { user: { id: 123 }});
+let permission = await rbacPlus.can('user', 'article:create', { user: { id: 123 }});
 if (permission.granted) {
   await Article.create(permission.constraint); // { ownerId: 123 }
 }
@@ -188,30 +310,30 @@ Restrict the grant/denial to specific fields. Provide a list of fieldNames. Use 
 
 ```js
 // grant on all fields
-rbac.grant('admin').scope('user:read')
+rbacPlus.grant('admin').scope('user:read')
   .onFields('*');
-rbac.can('admin', 'user:read:superPrivateData'); // permission.granted => yes
+rbacPlus.can('admin', 'user:read:superPrivateData'); // permission.granted => yes
 ```
 
 ```js
 // deny on specific fields
-rbac.grant('admin').scope('user:read')
+rbacPlus.grant('admin').scope('user:read')
   .onFields('*', '!privateData');
-rbac.can('admin', 'user:read:privateData'); // permission.granted => no
-rbac.can('admin', 'user:read:name'); // permission.granted => yes
+await rbacPlus.can('admin', 'user:read:privateData'); // permission.granted => no
+await rbacPlus.can('admin', 'user:read:name'); // permission.granted => yes
 ```
 ```js
 // grant on specific fields
-rbac.grant('admin').scope('user:read')
+rbacPlus.grant('admin').scope('user:read')
   .onFields('name');
-rbac.can('admin', 'user:read:name'); // permission.granted => yes
-rbac.can('admin', 'user:read:phoneNumber'); // permission.granted => no
+await rbacPlus.can('admin', 'user:read:name'); // permission.granted => yes
+await rbacPlus.can('admin', 'user:read:phoneNumber'); // permission.granted => no
 ```
 
 #### onDynamicFields
 Generate field grants dynamically, given a context. You can use async calls, if needed:
 ```js
-rbac.grant('admin').scope('user:read')
+rbacPlus.grant('admin').scope('user:read')
   .onDynamicFields(async ({admin, user}: Context) => {
     const permissive = await myBackend.adminHasPermissionFromUser(admin, user);
     if (permissive) {
@@ -290,33 +412,33 @@ const superAdmin = { id: 222 };
 async function testPermissions {
   let permission;
   // public can read published articles
-  permission = await rbac.can('public', 'article:read', { user: null, resource: published });
+  permission = await rbacPlus.can('public', 'article:read', { user: null, resource: published });
   // permission.granted => truthy
 
   // public can't read draft articles
-  permission = await rbac.can('public', 'article:read', { user: null, resource: draft });
+  permission = await rbacPlus.can('public', 'article:read', { user: null, resource: draft });
   // permission.granted => falsy
   // permission.denied = ['public:article:read:articleIsPublished']
 
   // author can read their own draft article
-  permission = rbac.can('author', 'article:read', { user, resource: draft });
+  permission = rbacPlus.can('author', 'article:read', { user, resource: draft });
   // permission.granted => truthy
 
   // auth can update their own article
-  permission = rbac.can('user', 'article:update', { user: user, resource: draft });
+  permission = rbacPlus.can('user', 'article:update', { user: user, resource: draft });
   // permission.granted => truthy
 
   // admin cannot update an author's article, even if they are impersonating them
-  permission = rbac.can('admin', 'article:update', { user: adminUser, resource: draft});
+  permission = rbacPlus.can('admin', 'article:update', { user: adminUser, resource: draft});
   // permission.granted => falsy
   // permision.denied = [ 'author:article:update:userIsResourceOwner' ]
 
   // admin can read a draft article if they are impersonating the author
-  permission = rbac.can('admin', 'article:read', { user: adminUser, resource: draft});
+  permission = rbacPlus.can('admin', 'article:read', { user: adminUser, resource: draft});
   // permission.granted => truthy
 
   // superadmin can do anything to user resources
-  permission = rbac.can('superadmin', 'user:delete', { user: superAdmin, resource: user });
+  permission = rbacPlus.can('superadmin', 'user:delete', { user: superAdmin, resource: user });
   // permission.granted => truthy
 }
 ```
