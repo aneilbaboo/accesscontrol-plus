@@ -30,7 +30,7 @@ npm install rbac-plus
   rbacPlus
     .grant('user')
       .resource('posts')
-        .action('read').onFields('*', '!dontreadthisfield')
+        .action('read').onFields('*', '!cantreadthisfield')
         .action('create')
         .action('update').where(userIsAuthor)
     .grant('admin').inherits('user')
