@@ -59,7 +59,7 @@ export class RBACPlus {
    * @param scope - the permission being sought ({resource}:{action})
    * @param context - Arbitrary object providing values resolved by the where Conditions
    */
-  public async can(roleName: string, scope: string, context: Context): Promise<IPermission> {
+  public async can(roleName: string, scope: string, context?: Context): Promise<IPermission> {
     const [resourceName, actionName, field] = scope.split(':');
     let permission: IPermission = { fields: {} };
     await this.canRole(roleName, resourceName, actionName, field, context, permission);
@@ -97,6 +97,10 @@ export class RBACPlus {
             return true;
           }
         }
+      }
+
+      if (!permission.denied) {
+        permission.denied = [];
       }
 
       return false;

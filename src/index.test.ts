@@ -100,20 +100,28 @@ describe('RBACPlus', async function () {
           .action('create')
             .where(userOwnsResource);
 
-      it('should return true when the permission is requested and the test is satisfied', async function () {
+      it('should return a permission where .granted is a string when permission is granted', async function () {
         const permission = await rbac.can('user', 'Post:create', {
           resource: { ownerId: 123},
           user: { id: 123 }
         });
-        expect(permission.granted).toBeTruthy();
+        expect(typeof permission.granted).toEqual('string');
       });
 
-      it('should return false when the permission is requested but the request is not satisified', async function () {
+      it('should return a permission where granted is undefined and denied is a list of ' +
+          'rejected scopes when permission is denied', async function () {
         const permission = await rbac.can('user', 'Post:create', {
           resource: { ownerId: 999},
           user: { id: 123 }
         });
-        expect(permission.granted).toBeFalsy();
+        expect(permission.granted).toBeUndefined();
+        expect(permission.denied).toEqual(['user:Post:create::userOwnsResource']);
+      });
+
+      it('should return a permission where denied is an empty list when no scope matched', async function () {
+        const permission = await rbac.can('user', 'Post:unknown');
+        expect(permission.granted).toBeUndefined();
+        expect(permission.denied).toEqual([]);
       });
     });
 
