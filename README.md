@@ -82,7 +82,8 @@ The `RBACPlus` class provides the top-level API of this library. Use it to defin
 ```typescript
 const rbac = new RBACPlus();
 rbacPlus.deny('public').scope('*:*');
-rbacPlus.grant('author').scope('post:create');
+rbacPlus.grant('author').scope('post:update')
+  .where(authorIsResourceOwner); // a function you write which tests attributes
 ```
 
 ### Definitions
@@ -100,14 +101,14 @@ A `scope` name is a `resource:action` pair or a `resource:action:field` triplet.
 "post:read:text" // read the text field of a post resource
 ```
 
-##### Shorthand notations
+##### Shortcuts for creating scopes
 ```js
 const userRole = rbacPlus.grant('user');
 
 // the following are all equivalent:
 userRole.scope('post:create')
 userRole.resource('post').action('create')
-userRole.resource('post').create
+userRole.resource('post').create // see CRUD shortcuts
 ```
 
 #### Permissions
