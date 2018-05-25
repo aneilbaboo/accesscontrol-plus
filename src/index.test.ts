@@ -25,11 +25,28 @@ describe('RBACPlus', async function () {
       describe('#inherit', async function () {
         it('should allow inheritance', async function () {
           const rbac = new RBACPlus();
-          expect(rbac.grant('user').resource('Post').grant('admin').inherits('user')).toBeInstanceOf(Role);
+          expect(rbac.grant('admin').inherits('user')).toBeInstanceOf(Role);
           expect(rbac.roles).toEqual({
-            user: { resources: { Post: {} }},
             admin: { inherits: ['user'], resources: {} }
           });
+        });
+
+
+        it('should allow multiple inheritance', async function () {
+          const rbac = new RBACPlus();
+          rbac.grant('admin')
+            .inherits('user')
+            .inherits('public');
+
+          expect(rbac.roles.admin.inherits).toEqual(['user', 'public']);
+        });
+
+        it('should not create a duplicate inheritance entry', function () {
+          const rbac = new RBACPlus();
+          rbac.grant('admin')
+            .inherits('user')
+            .inherits('user');
+          expect(rbac.roles.admin.inherits).toEqual(['user']);
         });
       });
 
