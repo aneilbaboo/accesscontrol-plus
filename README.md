@@ -8,13 +8,16 @@ npm install rbac-plus
 
 ## Features
 
-* Roles with inheritance
-* Globbing to match roles and scopes
-* Attribute-based access control
-* Resource constraints based on permission
-* Explains why permission granted or denied
-* Chainable API useful for modular policy definition
-* Typescript ready
+* Define roles using inheritance
+* Write fine grained permissions
+* Test arbitrary attributes (e.g. of the request or requested resource)
+* Restrict permissions to fields on the resource
+* Apply constraints to operations on the resource
+* Get explanation why a permission was granted or denied
+* Use wildcard matching in policies
+* Define policies in parts
+* Write policies in an easy-to-read format using a chainable API
+* Use Typescript
 
 ## Quick start
 
@@ -161,14 +164,26 @@ The `context` is a developer-specified value that is passed to the test function
 type Context = any;
 ```
 
-#### Specifying fields
-Permissions can be granted for specific fields:
+#### Fields
+Fields represent attributes of the resource. They can be allowed or denied using the [`onFields`](#onfields) method.
+
 ```typescript
+// E.g., Allow fields and disallow specific fields:
 rbacPlus.grant('user').resource('post').read.onFields('*', '!stats');
-// '*' - grant permission to all fields
-// 'name' - grant permission to a specific field
-// '!name' - disallow permission for a specific field
+
+// request permission for action on a specific field:
+rbac.can('user', 'post:read:stats'); // permission denied
+rbac.can('user', 'post:read:foo'); // permission granted
+permission = rbac.can('user', 'post:read');
+// permission granted with
+// permission.fields = { "*": true, "stats": false }
+
 ```
+
+Alternatively, you can request a permission for the action, and you will receive a permission with a `fields` property which is an object describing which fields are accessible:
+```
+rbac.
+
 Field permissions can also be calculated dynamically be providing a function (which can be async). The function returns an Object mapping field names to boolean values indicating whether the field is granted or not.
 E.g., the following is equivalent to the `onFields` call shown above.
 ```typescript
@@ -207,7 +222,7 @@ const rbac = new RBACPlus({ // this is the underlying structure the API builds
 });
 ```
 
-#### #can
+#### can
 Async function returning a permission indicating whether the given role can access the scope:
 ```js
 // context is a developer-defined value passed to conditions
@@ -216,36 +231,36 @@ const context = { user: { id: 'the-user-id' } };
 await rbacPlus.can('admin', 'delete:user', context);
 ```
 
-#### #grant
+#### grant
 Returns a Role object which will grant permissions
 ```js
 rbacPlus.grant('admin') // => Role instance
 ```
 
-#### #deny
+#### deny
 Returns a Role object which will grant permissions
 ```js
 rbacPlus.deny('admin') // => Role instance
 ```
 
-#### #roles
+#### roles
 
 ### Role
 Represents a named role.
 
-#### #inherits
+#### inherits
 Inherit scopes from another role:
 ```js
 role.inherits('public'); // => Role instance
 ```
 
-#### #resource
+#### resource
 Access a resource of a particular role:
 ```js
 role.resource('article'); // => Resource instance
 ```
 
-#### #scope
+#### scope
 Access a scope, a short cut for accessing a resource then accessing an action:
 ```js
 role.scope('article:read'); // same as role.resource('article').action('read')
@@ -254,9 +269,17 @@ role.scope('article:read'); // same as role.resource('article').action('read')
 ### Resource
 A resource object is obtained using the `Role.resource` method
 
-#### #action
+#### action
 ```js
 resource.action('read'); // => Scope
+```
+Note: you can create multiple scopes per action. This allows you to provide different constraints and fields for the same action:
+```js
+resource
+  .action('read').where(foobar)
+    .withConstraint(FooBarConstraint).onFields('foo', 'bar')
+  .action('read').where(baz)
+    .withConstraint(BazConstraint).onFields('baz');
 ```
 
 #### CRUD shortcuts
@@ -271,7 +294,7 @@ resource.delete // = resource.action('delete');
 ### Scope
 Represents a specific permission, and enables setting conditions and constrains on the permission.
 
-#### #where
+#### where
 Sets one or more tests which must all pass for the permission to be granted. This method is equivalent to `scope.and`, except for the name generated in the `permission.grant` and `permission.deny`:
 
 ```js
@@ -282,19 +305,19 @@ function async ownsResource({ user, request }) {
 scope.where(ownsResource); // => Scope
 ```
 
-#### #and
+#### and
 Grants permission for the scope if all of the tests return truthy values:
 ```js
 scope.and(test1, test2, test3...); // => Scope
 ```
 
-#### #or
+#### or
 Grants permission for the scope if any of the tests return a truthy value:
 ```js
 scope.or(test1, test2, test3...); // => Scope
 ```
 
-#### #withConstraint
+#### withConstraint
 Add a function which returns a constraint useful to the developer for passing to a function that accesses a resource:
 ```js
 rbacPlus.grant('user').scope('article:create')
@@ -306,7 +329,7 @@ if (permission.granted) {
 }
 ```
 
-#### #onFields
+#### onFields
 Restrict the grant/denial to specific fields. Provide a list of fieldNames. Use `*` for all fields, `!{fieldName}` to exclude a field:
 
 ```js
