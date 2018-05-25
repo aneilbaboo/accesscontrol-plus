@@ -1,6 +1,6 @@
 export type Context = any; // tslint:disable-line
 export type Constraint = any; // tslint:disable-line
-export type ConstraintGenerator = (context: Context) => any; // tslint:disable-line
+export type ConstraintGenerator = (context: Context) => (Promise<any> | any); // tslint:disable-line
 export type Condition = (context: Context) => boolean;
 export function All() { return true; }
 
@@ -18,9 +18,9 @@ export type FieldTest = (field: string | void, context?: Context) => (Promise<bo
 
 export interface IScope {
   condition: Condition;
-  constraint: ConstraintGenerator;
+  constraint?: ConstraintGenerator | Constraint;
   effect: Effect;
-  fieldTest: FieldTest;
+  fieldTest?: FieldTest;
 }
 
 export type FieldGenerator = (ctx: Context) => (Promise<IMap<boolean>> | IMap<boolean>);
@@ -34,7 +34,7 @@ export interface IPermission {
   fields?: IMap<boolean>;
 }
 
-export type IResource = IMap<IScope>;
+export type IResource = IMap<IScope[]>;
 export type IRoles = IMap<IRole>;
 
 export class RBACPlus {
@@ -81,12 +81,13 @@ export class RBACPlus {
       const roleResource = role.resources[resourceName] || role.resources['*'];
 
       if (roleResource) {
-        const scope = roleResource[actionName] || roleResource['*'];
-        if (scope) {
-          const description = [roleName, resourceName, actionName, field || '', scope.condition.name].join(':');
-          const [returnValue, terminate] = await this.processScope(scope, field, context, description, permission);
+        const scopes = roleResource[actionName] || roleResource['*'];
+        let exit = false;
+        if (scopes) {
+          const description = [roleName, resourceName, actionName, field || ''].join(':');
+          const [granted, terminate] = await this.processScopes(scopes, field, context, description, permission);
           if (terminate) {
-            return returnValue;
+            return granted;
           }
         }
       }
@@ -143,34 +144,37 @@ export class RBACPlus {
    * @param {Effect} effect
    * @param {string} description
    * @param {IPermission} permission
-   * @returns {Array<boolean, boolean>} effectiveValue, terminate
+   * @returns {Array<boolean, boolean>} granted, terminate
    * @memberof RBACPlus
    */
-  private async processScope(
-    scope: IScope, field: string | void, context: Context, description: string, permission: IPermission
+  private async processScopes(
+    scopes: IScope[], field: string | void, context: Context, partialDescription: string, permission: IPermission
   ): Promise<[boolean, boolean]> {
-    let fieldTest = await this.testField(scope, field, context);
-    let conditionTest = await this.testCondition(scope.condition, context);
-    if (scope.effect === 'grant') {
-      if (fieldTest && conditionTest) {
-        permission.granted = description;
-        if (scope.constraint) {
-          permission.constraint = scope.constraint(context);
+    let terminate = false;
+    for (const scope of scopes) {
+      const description = `${partialDescription}:${scope.condition.name}`;
+      let fieldTest = await this.testField(scope, field, context);
+      let conditionTest = await this.testCondition(scope.condition, context);
+      if (scope.effect === 'grant') {
+        if (fieldTest && conditionTest) {
+          permission.granted = description;
+          permission.constraint = scope.constraint instanceof Function ?
+            await scope.constraint(context)
+            : scope.constraint;
+          return [true, true];
+        } else { // failed to grant:
+          this.addDenial(permission, description);
+          terminate = !!field && !fieldTest; // field present, but fieldTest failed
         }
-        return [true, true];
-      } else { // failed to grant:
-        this.addDenial(permission, description);
-        const terminate = !!field && !fieldTest; // field present, but fieldTest failed
-        return [false, terminate];
+      } else { // effect === 'deny'
+        if (fieldTest && conditionTest) { // explicitly denied
+          this.addDenial(permission, description);
+          terminate = true;
+        } // else: do nothing if deny failed
       }
-    } else { // effect === 'deny'
-      if (fieldTest && conditionTest) { // explicitly denied
-        this.addDenial(permission, description);
-        return [false, true];
-      } // else: do nothing if deny failed
     }
 
-    return [false, false];
+    return [false, terminate];
   }
 
   private async testField(scope: IScope, field: string | void, context: Context): Promise<boolean> {
@@ -229,12 +233,17 @@ export class Resource extends Role {
   }
 
   public action(actionName: string): Scope {
-    this._resource[actionName] = this._resource[actionName] || {
+    if (!this._resource[actionName]) {
+      this._resource[actionName] = [];
+    }
+    const scopes = this._resource[actionName];
+    const scopeIndex = scopes.length;
+    scopes.push({
       condition: All,
-      constraints: {},
+      constraint: {},
       effect: this.effect
-    };
-    return new Scope(this.roles, this.roleName, this.effect, this.resourceName, actionName);
+    });
+    return new Scope(this.roles, this.roleName, this.effect, this.resourceName, actionName, scopeIndex);
   }
 
   public get create(): Scope {
@@ -260,7 +269,9 @@ export class Resource extends Role {
 
 export class Scope extends Resource {
   constructor(
-    roles: IRoles, roleName: string, effect: Effect, resourceName: string, public readonly actionName: string) {
+    roles: IRoles, roleName: string, effect: Effect, resourceName: string,
+    public readonly actionName: string,
+    public readonly scopeIndex: number) {
     super(roles, roleName, effect, resourceName);
   }
 
@@ -354,7 +365,7 @@ export class Scope extends Resource {
   }
 
   protected get _scope(): IScope {
-    return this._resource[this.actionName];
+    return this._resource[this.actionName][this.scopeIndex];
   }
 
   /**

@@ -1,4 +1,5 @@
 import {RBACPlus, Role, Resource, Scope, Context, All} from './';
+import { Condition } from './index';
 
 describe('RBACPlus', async function () {
   describe('#grant', async function () {
@@ -37,11 +38,11 @@ describe('RBACPlus', async function () {
           const rbac = new RBACPlus();
           expect(rbac.grant('user').scope('Post:read')).toBeInstanceOf(Scope);
           expect(rbac.roles).toEqual({
-            user: { resources: { Post: { read: {
+            user: { resources: { Post: { read: [{
               condition: All,
-              constraints: {},
+              constraint: {},
               effect: 'grant'
-            } } }}
+            }] } }}
           });
         });
 
@@ -49,7 +50,7 @@ describe('RBACPlus', async function () {
           it('should allow adding field tests', function () {
             const rbac = new RBACPlus();
             expect(rbac.grant('user').scope('Post:read').onFields('*', '!a', 'b', 'c')).toBeInstanceOf(Scope);
-            expect(rbac.roles.user.resources.Post.read.fieldTest).toBeInstanceOf(Function);
+            expect(rbac.roles.user.resources.Post.read[0].fieldTest).toBeInstanceOf(Function);
           });
 
           it('should allow adding logical conditions', function () {
@@ -85,6 +86,18 @@ describe('RBACPlus', async function () {
           it('should return a scope', async function () {
             const rbac = new RBACPlus();
             expect(rbac.grant('user').resource('Post').action('read')).toBeInstanceOf(Scope);
+          });
+
+          it('should allow adding multiple actions', async function () {
+            const rbac = new RBACPlus();
+            const condition1 = (ctx: Context) => ctx === 1;
+            const condition2 = (ctx: Context) => ctx === 2;
+            rbac.grant('user')
+              .resource('Post')
+                .read.where(condition1).onFields('c1Field')
+                .read.where(condition2).onFields('c2Field');
+
+            expect(rbac.roles.user.resources.Post.read).toHaveLength(2);
           });
         });
 
@@ -125,6 +138,40 @@ describe('RBACPlus', async function () {
       });
     });
 
+    describe('with multiple scopes for the same action', function () {
+      const rbac = new RBACPlus();
+      const condition1 = (ctx: Context) => ctx === 1;
+      const condition2 = (ctx: Context) => ctx === 2;
+      rbac.grant('user')
+        .resource('Post')
+          .read.where(condition1).onFields('c1Field').withConstraint('c1 constraint')
+          .read.where(condition2).onFields('c2Field').withConstraint('c2 constraint');
+
+      it('should grant permission for each scope', async function () {
+        const p1 = await rbac.can('user', 'Post:read', 1);
+        expect(p1.granted).toEqual('user:Post:read::condition1');
+
+        const p2 = await rbac.can('user', 'Post:read', 2);
+        expect(p2.granted).toEqual('user:Post:read::condition2');
+      });
+
+      it('should distinguish fields for each granted scope on the action', async function () {
+        const p1 = await rbac.can('user', 'Post:read:c1Field', 1);
+        expect(p1.granted).toBeTruthy();
+
+        const p2 = await rbac.can('user', 'Post:read:c2Field', 2);
+        expect(p2.granted).toBeTruthy();
+      });
+
+      it('should distinguish constraints for each granted scope on the action', async function () {
+        const p1 = await rbac.can('user', 'Post:read:c1Field', 1);
+        expect(p1.constraint).toEqual('c1 constraint');
+
+        const p2 = await rbac.can('user', 'Post:read:c2Field', 2);
+        expect(p2.constraint).toEqual('c2 constraint');
+      });
+    });
+
     it('should return true for a role which inherits from the role with the permission', async function () {
       const rbac = new RBACPlus();
       rbac.grant('user')
@@ -152,9 +199,10 @@ describe('RBACPlus', async function () {
       return resource.state === 'published';
     }
 
-    let rbac = new RBACPlus();
+    let rbac;
 
     beforeEach(function () {
+      rbac = new RBACPlus();
       rbac
         .deny('public').scope('*:*')
         .grant('public')
@@ -195,6 +243,12 @@ describe('RBACPlus', async function () {
       expect(permission.granted).toBeTruthy();
     });
 
+    it('should let an author read their own unpublished article', async function () {
+      const permission = await rbac.can('author', 'article:read:allowedPublicField', {
+        user: author, resource: draft
+      });
+      expect(permission.granted).toBeTruthy();
+    });
     it('should not let the public read disallowed fields on a published article', async function () {
       const permission = await rbac.can('public', 'article:read:disallowedPublicField', {
         user: null, resource: published
