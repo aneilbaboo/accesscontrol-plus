@@ -40,12 +40,12 @@ export type IRoles = IMap<IRole>;
 export class RBACPlus {
   constructor(public roles: IRoles = {}) {}
 
-  public grant(roleName: string) {
+  public grant(roleName: string): Role {
     this.ensureRole(roleName);
     return new Role(this.roles, roleName, 'grant');
   }
 
-  public deny(roleName: string) {
+  public deny(roleName: string): Role {
     this.ensureRole(roleName);
     return new Role(this.roles, roleName, 'deny');
   }
