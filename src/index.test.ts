@@ -1,5 +1,5 @@
 import {RBACPlus, Role, Resource, Scope, Context, All} from './';
-import { Condition } from './index';
+import { Condition, Permission } from './index';
 
 describe('RBACPlus', async function () {
   describe('#grant', async function () {
@@ -30,7 +30,6 @@ describe('RBACPlus', async function () {
             admin: { inherits: ['user'], resources: {} }
           });
         });
-
 
         it('should allow multiple inheritance', async function () {
           const rbac = new RBACPlus();
@@ -67,7 +66,7 @@ describe('RBACPlus', async function () {
           it('should allow adding field tests', function () {
             const rbac = new RBACPlus();
             expect(rbac.grant('user').scope('Post:read').onFields('*', '!a', 'b', 'c')).toBeInstanceOf(Scope);
-            expect(rbac.roles.user.resources.Post.read[0].fieldTest).toBeInstanceOf(Function);
+            expect(rbac.roles.user.resources.Post.read[0].fieldGenerator).toBeInstanceOf(Function);
           });
 
           it('should allow adding logical conditions', function () {
@@ -121,6 +120,7 @@ describe('RBACPlus', async function () {
       });
     });
   });
+
   describe('can', async function () {
     describe('role with where scope', async function () {
       const userOwnsResource = ({resource, user}) => resource.ownerId === user.id;
@@ -145,7 +145,7 @@ describe('RBACPlus', async function () {
           user: { id: 123 }
         });
         expect(permission.granted).toBeUndefined();
-        expect(permission.denied).toEqual(['user:Post:create::userOwnsResource']);
+        expect(permission.denied).toEqual([{request: 'user:Post:create::userOwnsResource'}]);
       });
 
       it('should return a permission where denied is an empty list when no scope matched', async function () {
@@ -204,6 +204,60 @@ describe('RBACPlus', async function () {
 
   });
 
+  describe('Permission', function () {
+    describe('deny', function () {
+      it('should allow adding a denial', function () {
+        const permission = new Permission();
+        expect(permission.denied).toBeFalsy();
+        permission.deny('foo');
+        expect(permission.denied).toEqual([{request: 'foo'}]);
+      });
+
+      it('should allow adding an empty denial', function () {
+        const permission = new Permission();
+        expect(permission.denied).toBeFalsy();
+        permission.deny();
+        expect(permission.denied).toEqual([]);
+      });
+    });
+
+    describe('grant', function () {
+      it('should set the granted scope', function () {
+        const permission = new Permission();
+        expect(permission.granted).toBeUndefined();
+        permission.grant('foo');
+        expect(permission.granted).toEqual('foo');
+      });
+
+      it('should throw an error if an attempt is made to change the grant', function () {
+        const permission = new Permission();
+        permission.grant('foo');
+        expect(() => permission.grant('bar')).toThrow();
+      });
+    });
+
+    describe('field', function () {
+
+      it('should return false when grants is true and field is not', function () {
+        const permission = new Permission();
+        permission.grant('foo', {bar: true});
+        expect(permission.field('bar')).toBeTruthy();
+      });
+
+      it('should return true when the permission is granted, if wildcard field is allowed', function () {
+        const permission = new Permission();
+        permission.grant('foo', { '*': true });
+        expect(permission.field('bar')).toBeTruthy();
+      });
+
+      it('should return false when the permission is granted, if field is explicitly denied', function () {
+        const permission = new Permission();
+        permission.grant('foo', { '*': true, bar: false });
+        expect(permission.field('bar')).toBeFalsy();
+      });
+    });
+  });
+
   describe('Given the README.md example,', function () {
 
     function userIsResourceOwner({user, resource}: Context) {
@@ -229,8 +283,8 @@ describe('RBACPlus', async function () {
         .grant('author').inherits('public')
           .resource('article')
             .action('create').withConstraint(({user}) => ({ ownerId: user.id }))
-            .action('read').where(userIsResourceOwner)
-            .action('update').where(userIsResourceOwner)
+            .action('read').where(userIsResourceOwner).onFields('*')
+            .action('update').where(userIsResourceOwner).onFields('*')
         .grant('admin').inherits('author')
           .scope('article:read')
             .where(userImpersonatesResourceOwner)
@@ -266,12 +320,13 @@ describe('RBACPlus', async function () {
       });
       expect(permission.granted).toBeTruthy();
     });
+
     it('should not let the public read disallowed fields on a published article', async function () {
       const permission = await rbac.can('public', 'article:read:disallowedPublicField', {
         user: null, resource: published
       });
       expect(permission.granted).toBeFalsy();
-      expect(permission.denied).toEqual(['public:article:read:disallowedPublicField:articleIsPublished']);
+      expect(permission.denied).toEqual([{ request: 'public:article:read:disallowedPublicField:articleIsPublished' }]);
     });
 
     it('should not let the public read fields which have not been implicitly or explicitly allowed', async function () {
@@ -279,14 +334,18 @@ describe('RBACPlus', async function () {
         user: null, resource: published
       });
       expect(permission.granted).toBeFalsy();
-      expect(permission.denied).toEqual(['public:article:read:unmentionedField:articleIsPublished']);
+      expect(permission.denied).toEqual([{
+        request: 'public:article:read:unmentionedField:articleIsPublished'
+      }]);
     });
 
     it('should not let the public read an unpublished article', async function () {
       const permission = await rbac.can('public', 'article:read', { user: null, resource: draft });
       expect(permission.granted).toBeFalsy();
       expect(permission.denied).toHaveLength(1);
-      expect(permission.denied[0]).toEqual('public:article:read::articleIsPublished');
+      expect(permission.denied[0]).toEqual({
+        request: 'public:article:read::articleIsPublished'
+      });
     });
 
     it('should allow an admin to read all fields on the user except explicitly denied ones', async function () {
@@ -311,9 +370,9 @@ describe('RBACPlus', async function () {
       const permission = await rbac.can('admin', 'article:update', { user: adminUser, resource: draft});
       expect(permission.denied).toBeDefined();
       expect(permission.denied).toHaveLength(1);
-      expect(permission.denied).toEqual([
-        'author:article:update::userIsResourceOwner'
-      ]);
+      expect(permission.denied).toEqual([{
+        request: 'author:article:update::userIsResourceOwner'
+      }]);
     });
 
     it('should allow an admin to read a draft article if they are impersonating the user', async function () {

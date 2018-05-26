@@ -115,15 +115,15 @@ userRole.resource('post').create // see CRUD shortcuts
 ```
 
 #### Permissions
-A `permission` is a plain Javascript object returned by `RBACPlus#can`:
+A `permission` is an instance of the `Permission` class returned by `RBACPlus#can`:
 ```typescript
-const permission: IPermission = await rbacPlus.can('user', 'post:read');
+const permission: Permission = await rbacPlus.can('user', 'post:read');
 
 // If the permission is granted
 permission.granted === "user:post:read" // or similar
 
 // if permission is denied:
-permission.denied === [ "...", "..." ] // array of strings, representing all the scopes that were tested and denied
+permission.denied === [ { request: "..." }, { request: "..." } ] // request represent the scopes that were denied
 ```
 If [constraints](##withConstraint) were defined for the scope, the permission will contain a `constraint` key.
 
@@ -366,6 +366,22 @@ rbacPlus.grant('admin').scope('user:read')
       return { 'id': true, 'userName': true, 'phoneNumber': true };
     }
   });
+```
+
+### Permission
+Object returned by `RBACPlus#can`
+
+#### granted
+If permission granted this will be a string describing the scope granted.
+
+#### denied
+If permission denied, this is set to an array of objects that contain
+
+#### field
+Tests whether permission was granted for the specified field. Accounts for wildcards and denied fields (`!foo`) provided in [`.onFields`](#onFields).
+
+```js
+permission.field('foo') // => true or false
 ```
 
 ## Extended Example
