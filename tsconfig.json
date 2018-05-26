@@ -3,11 +3,11 @@
   "compilerOptions": {
     "declaration": true,
     "lib": [ "es2018" ],
-    "module": "commonjs",
+    "module": "amd",
     "moduleResolution": "node",
     "noImplicitAny": true,
     "noImplicitReturns": true,
-    "outDir": "./lib",
+    "outFile": "./lib/index.js",
     "removeComments": true,
     "strictNullChecks": true,
     "target": "es6"
