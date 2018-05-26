@@ -1,4 +1,4 @@
-/// <amd-module name="rbac-plus/permission" />
+/// <reference path="./interfaces.ts" />
 
 import { IRequest, IDenial, IExplanation, IConstraint, IFieldDefs, IMap, IPermission } from './interfaces';
 

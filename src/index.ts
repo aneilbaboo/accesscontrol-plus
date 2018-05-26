@@ -1,6 +1,8 @@
-/// <amd-module name="rbac-plus" />
+/// <reference path="./interfaces.ts" />
+/// <reference path="./permission.ts" />
+/// <reference path="./rbac-plus.ts" />
 
-export { RBACPlus as default, RBACPlus } from './rbac-plus';
+export { RBACPlus } from './rbac-plus';
 export { Permission } from './permission';
 export {
   IContext,

@@ -1,4 +1,6 @@
-/// <amd-module name="rbac-plus/core" />
+/// <reference path="./interfaces.ts" />
+/// <reference path="./permission.ts" />
+
 import {
   IRoleDef, IMap, IRoleDefs, IRequest, IDenial, IScopeDefs, IResourceDef,
   ICondition, IConstraint, IContext,
