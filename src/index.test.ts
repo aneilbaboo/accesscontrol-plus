@@ -1,14 +1,14 @@
-import { RBACPlus, Context } from '.';
+import { RBACPlus, IContext, Permission } from '.';
 
 describe('Given the README.md example,', function () {
 
-  function userIsResourceOwner({user, resource}: Context) {
+  function userIsResourceOwner({user, resource}: IContext) {
     return user.id === resource.ownerId;
   }
-  function userImpersonatesResourceOwner({user, resource}: Context) {
+  function userImpersonatesResourceOwner({user, resource}: IContext) {
     return user.impersonationId === resource.ownerId;
   }
-  function articleIsPublished({resource}: Context) {
+  function articleIsPublished({resource}: IContext) {
     return resource.state === 'published';
   }
 
@@ -140,5 +140,9 @@ describe('Given the README.md example,', function () {
     const permission = await rbac.can('public', 'article:create', { user: author });
     expect(permission.granted).toBeFalsy();
     expect(permission.constraint).not.toBeDefined();
+  });
+
+  it('should expose the Permission class', function () {
+    expect(new Permission()).toBeInstanceOf(Permission);
   });
 });

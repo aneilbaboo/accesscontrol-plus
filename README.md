@@ -223,23 +223,30 @@ const rbac = new RBACPlus({ // this is the underlying structure the API builds
 ```
 
 #### can
+
 Async function returning a permission indicating whether the given role can access the scope:
 ```js
 // context is a developer-defined value passed to conditions
 // (see Scope #where, #and, #or)
 const context = { user: { id: 'the-user-id' } };
+// rbacPlus.can(role, scope, context)
 await rbacPlus.can('admin', 'delete:user', context);
 ```
 
+The first argument can also be a list of role names.
+
 #### grant
+
 Returns a Role object which will grant permissions
 ```js
+// rbacPls.grant(roleName)
 rbacPlus.grant('admin') // => Role instance
 ```
 
 #### deny
 Returns a Role object which will grant permissions
 ```js
+// rbacPlus.deny(roleName);
 rbacPlus.deny('admin') // => Role instance
 ```
 
@@ -251,18 +258,21 @@ Represents a named role.
 #### inherits
 Inherit scopes from another role:
 ```js
+// role.inherits(roleName)
 role.inherits('public'); // => Role instance
 ```
 
 #### resource
 Access a resource of a particular role:
 ```js
+// role.resource(resourceName)
 role.resource('article'); // => Resource instance
 ```
 
 #### scope
 Access a scope, a short cut for accessing a resource then accessing an action:
 ```js
+// role.scope(scopeName)
 role.scope('article:read'); // same as role.resource('article').action('read')
 ```
 
@@ -271,6 +281,7 @@ A resource object is obtained using the `Role.resource` method
 
 #### action
 ```js
+// resource.action(actionName)
 resource.action('read'); // => Scope
 ```
 Note: you can create multiple scopes per action. This allows you to provide different constraints and fields for the same action:
@@ -298,6 +309,8 @@ Represents a specific permission, and enables setting conditions and constrains 
 Sets one or more tests which must all pass for the permission to be granted. This method is equivalent to `scope.and`, except for the name generated in the `permission.grant` and `permission.deny`:
 
 ```js
+// scope.where((context: Context) => boolean)
+// scope.where(async (context: Context) => Promise<boolean>)
 function async ownsResource({ user, request }) {
   const resource = await MyResource.loadFromDB({ id: request.params.id });
   return resource.id === user.id;
@@ -318,6 +331,8 @@ scope.or(test1, test2, test3...); // => Scope
 ```
 
 #### withConstraint
+Note: constraints are deprecated and may be removed from a future version of the API.
+
 Add a function which returns a constraint useful to the developer for passing to a function that accesses a resource:
 ```js
 rbacPlus.grant('user').scope('article:create')

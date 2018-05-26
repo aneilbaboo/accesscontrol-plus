@@ -1,7 +1,9 @@
 export { RBACPlus as default, RBACPlus } from './rbac-plus';
+export { Permission } from './permission';
 export {
-  IContext as Context,
-  ICondition as Condition,
-  IFieldGenerator as FieldGenerator,
-  IConstraintGenerator as ConstraintGenerator
+  IContext,
+  ICondition,
+  IFieldGenerator,
+  IConstraintGenerator,
+  IPermission
 } from './interfaces';
