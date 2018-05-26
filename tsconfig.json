@@ -2,15 +2,18 @@
   "compileOnSave": true,
   "compilerOptions": {
     "declaration": true,
-    "lib": [ "es2018" ],
+    "esModuleInterop": true,
+    "lib": [ "es2016" ],
     "module": "amd",
     "moduleResolution": "node",
     "noImplicitAny": true,
     "noImplicitReturns": true,
     "outFile": "./lib/index.js",
     "removeComments": true,
+    "strict": true,
     "strictNullChecks": true,
-    "target": "es6"
+    "stripInternal": true,
+    "target": "es5"
   },
   "files": [
     "./src/index.ts"

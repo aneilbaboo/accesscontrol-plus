@@ -142,7 +142,7 @@ describe('Given the README.md example,', function () {
     expect(permission.constraint).not.toBeDefined();
   });
 
-  it('should expose the Permission class', function () {
+  it('should expose the `Permiss`ion class', function () {
     expect(new Permission()).toBeInstanceOf(Permission);
   });
 });

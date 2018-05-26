@@ -1,3 +1,5 @@
+/// <amd-module name="rbac-plus/interfaces" />
+
 export type IContext = any; // tslint:disable-line
 export type IConstraint = any; // tslint:disable-line
 export type IConstraintGenerator = (context: IContext) => (Promise<any> | any); // tslint:disable-line

@@ -1,3 +1,4 @@
+/// <amd-module name="rbac-plus/core" />
 import {
   IRoleDef, IMap, IRoleDefs, IRequest, IDenial, IScopeDefs, IResourceDef,
   ICondition, IConstraint, IContext,
@@ -340,20 +341,6 @@ export class Scope extends Resource {
 
   protected get _scope(): IScopeDefs {
     return this._resource[this.actionName][this.scopeIndex];
-  }
-
-  /**
-   *
-   *
-   * @private
-   * @param {IMap<boolean>} scopedFields
-   * @returns {IFieldTest} - fn returning true (field found) false (field negation found) void (field not requested)
-   * @memberof Scope
-   */
-  private makeFieldTest(scopedFields: IMap<boolean>): IFieldTest {
-    return function (field: string | void): boolean {
-      return this.fieldSatisfied(field, scopedFields);
-    };
   }
 
   private fieldSatisified(field: string | void, scopedFields: IMap<boolean>): boolean {

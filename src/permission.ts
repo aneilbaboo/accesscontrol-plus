@@ -1,3 +1,5 @@
+/// <amd-module name="rbac-plus/permission" />
+
 import { IRequest, IDenial, IExplanation, IConstraint, IFieldDefs, IMap, IPermission } from './interfaces';
 
 export class Permission implements IPermission {
