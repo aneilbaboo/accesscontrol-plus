@@ -88,6 +88,8 @@ rbacPlus.deny('public').scope('*:*');
 rbacPlus.grant('author').scope('post:update')
   .where(authorIsResourceOwner); // a function you write which tests attributes
 ```
+### Effect: Grant or Deny
+A grant permits a user
 
 ### Definitions
 
@@ -158,7 +160,7 @@ If a condition throws an error, it is treated as though it returned `false`. (No
 
 #### Context
 
-The `context` is a developer-specified value that is passed to the test function `can`, which in turn passes the value to `conditions` and fieldgen functions provided to `onDynamicFields` while attempting to find a permission grant. Arbitrary values such as the current user, the request parameters, time, environment and location can be passed in the context. See the example above under [Conditions](#Conditions).
+The `context` is a developer-specified value that is passed to the test function `can`, which in turn passes the value to various developer-defined functions involved in testing scopes. Arbitrary values such as the current user, the request parameters, time, environment and location can be passed in the context. See the example above under [Conditions](#Conditions).
 
 ```typescript
 type Context = any;
