@@ -207,23 +207,22 @@ Top level object which exposes the API.
 #### constructor
 ```js
 import {RBACPlus} from 'rbac-plus';
-const rbac = new RBACPlus();
+const rbacPlus = new RBACPlus();
+```
 
-// alternatively, define permissions in the constructor:
-import {RBACPlus, All} from 'rbac-plus';
-const rbac = new RBACPlus({ // this is the underlying structure the API builds
-  admin: {                  // and uses to determine permissions
-    resources: {
-      user: {
-        delete: {
-          condition: All,
-          effect: 'grant'
-        }
-      }
-    }
-    inherits: [ 'user' ]
-  }
-});
+#### grant
+
+Returns a Role object which can be used to grant permissions
+```js
+// rbacPlus.grant(roleName)
+rbacPlus.grant('admin') // => Role instance
+```
+
+#### deny
+Returns a Role object which can be used to deny permissions
+```js
+// rbacPlus.deny(roleName);
+rbacPlus.deny('admin') // => Role instance
 ```
 
 #### can
@@ -239,22 +238,26 @@ await rbacPlus.can('admin', 'delete:user', context);
 
 The first argument can also be a list of role names.
 
-#### grant
-
-Returns a Role object which will grant permissions
+#### advanced constructor
+The constructor can also be passed a Javascript object which defines the policies directly. This is the underlying structure that the RBACPlus methods operate on:
 ```js
-// rbacPls.grant(roleName)
-rbacPlus.grant('admin') // => Role instance
+import {RBACPlus, All} from 'rbac-plus';
+const rbac = new RBACPlus({ // this is the underlying structure the API builds
+  admin: {                  // and uses to determine permissions
+    resources: {
+      user: {
+        delete: {
+          condition: All,
+          effect: 'grant'
+        }
+      }
+    }
+    inherits: [ 'user' ]
+  }
+});
+
 ```
 
-#### deny
-Returns a Role object which will grant permissions
-```js
-// rbacPlus.deny(roleName);
-rbacPlus.deny('admin') // => Role instance
-```
-
-#### roles
 
 ### Role
 Represents a named role.
