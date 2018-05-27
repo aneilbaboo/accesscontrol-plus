@@ -8,6 +8,7 @@ npm install rbac-plus
 
 ## Features
 
+* Write policies that are easy to read
 * Define roles using inheritance
 * Write fine grained permissions
 * Test arbitrary attributes (e.g. of the request or requested resource)
@@ -16,7 +17,6 @@ npm install rbac-plus
 * Get explanation why a permission was granted or denied
 * Use wildcard matching in policies
 * Define policies in parts
-* Write policies in an easy-to-read format using a chainable API
 * Use Typescript
 
 ## Quick start
