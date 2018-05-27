@@ -51,5 +51,21 @@ describe('Permission', function () {
       permission.grant('foo', { '*': true, bar: false });
       expect(permission.field('bar')).toBeFalsy();
     });
+
+    it('should return false if no fields defined', function () {
+      const permission = new Permission();
+      permission.grant('foo');
+      expect(permission.field('bar')).toBeFalsy();
+    });
+  });
+
+  describe('fields', function () {
+    it('should provide access to the fields set in grant', function () {
+      const permission = new Permission();
+      permission.grant('foo', { '*': true, bar: false });
+      expect(permission.fields).toEqual({
+        '*': true, bar: false
+      });
+    });
   });
 });

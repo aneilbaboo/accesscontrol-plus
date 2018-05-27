@@ -25,6 +25,7 @@ export class RBACPlus {
     this.ensureRole(roleName);
     return new Role(this.roles, roleName, 'deny');
   }
+
   /**
    * Tests whether one or more roles is authorized to perform the request with the given requirements
    * E.g., rbac.can('user', 'Report:update', { ownerId: 'auth0|1234' }, { userId: 'auth0|1234' })
@@ -146,6 +147,7 @@ export class RBACPlus {
         if (fieldTest && conditionTest) { // explicitly denied
           permission.deny(scopeRequest);
           terminate = true;
+          break;
         } // else: do nothing if deny failed
       }
     }
@@ -163,7 +165,7 @@ export class RBACPlus {
 }
 
 export class Role extends RBACPlus {
-  constructor(roles: IRoleDefs, public readonly roleName: string, public readonly effect: IEffect = 'grant') {
+  constructor(roles: IRoleDefs, public readonly roleName: string, public readonly effect: IEffect) {
     super(roles);
   }
 
@@ -205,7 +207,7 @@ export class Role extends RBACPlus {
 
 export class Resource extends Role {
   constructor(roles: IRoleDefs, roleName: string, effect: IEffect, public readonly resourceName: string) {
-    super(roles, roleName);
+    super(roles, roleName, effect);
   }
 
   public action(actionName: string): Scope {
@@ -235,7 +237,7 @@ export class Resource extends Role {
   }
 
   public get delete(): Scope {
-    return this.action('update');
+    return this.action('delete');
   }
 
   protected get _resource(): IResourceDef {
@@ -343,20 +345,5 @@ export class Scope extends Resource {
 
   protected get _scope(): IScopeDefs {
     return this._resource[this.actionName][this.scopeIndex];
-  }
-
-  private fieldSatisified(field: string | void, scopedFields: IMap<boolean>): boolean {
-    if (field) {
-      if (scopedFields.hasOwnProperty(field)) {
-        // explicit scope provided for this field:
-        return scopedFields[field];
-      } else {
-        // default to '*' field or false
-        return scopedFields['*'] || false;
-      }
-    } else {
-      // no field requirement
-      return true;
-    }
   }
 }

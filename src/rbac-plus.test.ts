@@ -3,6 +3,18 @@ import { IContext } from './interfaces';
 import { Permission } from './permission';
 
 describe('RBACPlus', async function () {
+  describe('#deny', function () {
+    it('should generate a valid role', function () {
+      const rbac = new RBACPlus();
+      const role = rbac.deny('user');
+      expect(role).toBeInstanceOf(Role);
+      expect(role.effect).toEqual('deny');
+      expect(rbac.roles).toEqual({
+        user: { resources: {}}
+      });
+    });
+  });
+
   describe('#grant', async function () {
     it('should generate a valid role', async function () {
       const rbac = new RBACPlus();
@@ -22,6 +34,15 @@ describe('RBACPlus', async function () {
     });
 
     describe('Role', async function () {
+
+      describe('when denied', function () {
+        it('should create a resource where effect is deny', function () {
+          const rbac = new RBACPlus();
+          const resource = rbac.deny('user').resource('post');
+          expect(resource).toBeInstanceOf(Resource);
+          expect(resource.effect).toEqual('deny');
+        });
+      });
 
       describe('#inherit', async function () {
         it('should allow inheritance', async function () {
@@ -76,6 +97,14 @@ describe('RBACPlus', async function () {
             expect(rbac.grant('user').scope('Post:read').and((ctx: IContext) => true)).toBeInstanceOf(Scope);
             expect(rbac.grant('user').scope('Post:read').or((ctx: IContext) => true)).toBeInstanceOf(Scope);
           });
+
+          describe('when denied', function () {
+            it('should create a scope which is denied', function () {
+              const rbac = new RBACPlus();
+              const scope = rbac.deny('public').resource('post').action('create');
+              expect(scope.effect).toEqual('deny');
+            });
+          });
         });
       });
 
@@ -118,11 +147,40 @@ describe('RBACPlus', async function () {
           });
         });
 
+        describe('CRUD properties', function () {
+          it('should offer a create action', function () {
+            const rbac = new RBACPlus();
+            const scope = rbac.grant('user').resource('post').create;
+            expect(scope).toBeInstanceOf(Scope);
+            expect(rbac.roles.user.resources.post.create).toBeDefined();
+          });
+
+          it('should offer a read action', function () {
+            const rbac = new RBACPlus();
+            const scope = rbac.grant('user').resource('post').read;
+            expect(scope).toBeInstanceOf(Scope);
+            expect(rbac.roles.user.resources.post.read).toBeDefined();
+          });
+
+          it('should offer a update action', function () {
+            const rbac = new RBACPlus();
+            const scope = rbac.grant('user').resource('post').update;
+            expect(scope).toBeInstanceOf(Scope);
+            expect(rbac.roles.user.resources.post.update).toBeDefined();
+          });
+
+          it('should offer a delete action', function () {
+            const rbac = new RBACPlus();
+            const scope = rbac.grant('user').resource('post').delete;
+            expect(scope).toBeInstanceOf(Scope);
+            expect(rbac.roles.user.resources.post.delete).toBeDefined();
+          });
+        });
       });
     });
   });
 
-  describe('can', async function () {
+  describe('#can', async function () {
     describe('role with where scope', async function () {
       const userOwnsResource = ({resource, user}) => resource.ownerId === user.id;
       const rbac = new RBACPlus();
@@ -184,6 +242,103 @@ describe('RBACPlus', async function () {
         expect(permission.granted).toBeFalsy();
       });
 
+      it('should disallow invalid field names', function () {
+        const rbac = new RBACPlus();
+        expect(() => rbac.grant('user').scope('post:read').onFields(''))
+          .toThrow();
+      });
+
+      it('should allow setting dynamic field generator', function () {
+        const rbac = new RBACPlus();
+        rbac.grant('user').scope('post:read').onDynamicFields((c: IContext) => c);
+        expect(rbac.roles.user.resources.post.read[0].fieldGenerator).toBeInstanceOf(Function);
+        expect(rbac.roles.user.resources.post.read[0].fieldGenerator({foo: 1, bar: 2}))
+          .toEqual({ foo: 1, bar: 2});
+      });
+    });
+
+    describe('when handling denied roles,', function () {
+      it('should deny when the inherited role allows, but the inheriting role denies', async function () {
+        const rbac = new RBACPlus();
+        rbac
+          .grant('baseRole').scope('*:*')
+          .deny('superRole').inherits('baseRole')
+            .scope('foo:bar');
+        const basePerm = await rbac.can('baseRole', 'foo:bar');
+        const superPerm = await rbac.can('superRole', 'foo:bar');
+
+        expect(basePerm.granted).toBeTruthy();
+        expect(superPerm.granted).toBeFalsy();
+      });
+
+      it('should override a previous wildcard grant for the same role', async function () {
+        const rbac = new RBACPlus();
+        rbac
+          .grant('user')
+            .scope('foo:*')
+          .deny('user')
+            .scope('foo:bar');
+        const permission = await rbac.can('user', 'foo:bar');
+        expect(permission.granted).toBeFalsy();
+      });
+
+      it('should override a later grant of the same permission for the same role', async function () {
+        const rbac = new RBACPlus();
+        rbac
+          .deny('user')
+            .scope('foo:bar')
+          .grant('user')
+            .scope('foo:bar'); // never accessed
+        const permission = await rbac.can('user', 'foo:bar');
+        expect(permission.granted).toBeFalsy();
+      });
+
+      it('should not override a later grant of a different permission for the same role', async function () {
+        const rbac = new RBACPlus();
+        rbac
+          .deny('user')
+            .scope('foo:bar')
+          .grant('user')
+            .scope('foo:BAZ'); // never accessed
+        const permission = await rbac.can('user', 'foo:BAZ');
+        expect(permission.granted).toBeTruthy();
+      });
+
+      it('should not override a later grant on a different field', async function () {
+        const rbac = new RBACPlus();
+        rbac
+          .deny('user')
+            .scope('foo:bar').onFields('hello')
+          .grant('user')
+            .scope('foo:bar').onFields('sailor'); // never accessed
+        const permission = await rbac.can('user', 'foo:bar:sailor');
+        expect(permission.granted).toBeTruthy();
+      });
+
+      it('should not override a later grant if the condition fails', async function () {
+        const rbac = new RBACPlus();
+        const alwaysFalse = (context: IContext) => false;
+        rbac
+          .deny('user')
+            .scope('foo:bar').where(alwaysFalse)
+          .grant('user')
+            .scope('foo:bar'); // never accessed
+        const permission = await rbac.can('user', 'foo:bar');
+        expect(permission.granted).toBeTruthy();
+      });
+    });
+
+    describe('when checking inherited permissions,', function () {
+      it('should return a valid permission for an inherited role', async function () {
+        const rbac = new RBACPlus();
+
+        rbac
+          .grant('public').scope('read:post')
+          .grant('user').inherits('public');
+
+        const permission = await rbac.can('user', 'read:post');
+        expect(permission.granted).toEqual('public:read:post::All');
+      });
     });
 
     describe('with multiple scopes for the same action', function () {
