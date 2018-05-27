@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/gh/aneilbaboo/rbac-plus/tree/master.svg?style=shield&circle-token=dd1dce6e44faad80e9205bd87f081ae5f0d21428)](https://circleci.com/gh/aneilbaboo/rbac-plus/tree/master)
+[![CircleCI](https://circleci.com/gh/aneilbaboo/rbac-plus/tree/master.svg?style=shield&circle-token=dd1dce6e44faad80e9205bd87f081ae5f0d21428)](https://circleci.com/gh/aneilbaboo/rbac-plus/tree/master) [![codecov](https://codecov.io/gh/aneilbaboo/rbac-plus/branch/master/graph/badge.svg)](https://codecov.io/gh/aneilbaboo/rbac-plus) [![Maintainability](https://api.codeclimate.com/v1/badges/701ac0ef9089cee1a13a/maintainability)](https://codeclimate.com/github/aneilbaboo/rbac-plus/maintainability)
 
 # RBACPlus
 
