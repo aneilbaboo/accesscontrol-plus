@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/aneilbaboo/rbac-plus/tree/master.svg?style=shield&circle-token=dd1dce6e44faad80e9205bd87f081ae5f0d21428)](https://circleci.com/gh/aneilbaboo/rbac-plus/tree/master)
+
 # RBACPlus
 
 Role based access control with inheritance and attribute tests
