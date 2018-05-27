@@ -156,6 +156,36 @@ describe('RBACPlus', async function () {
       });
     });
 
+    describe('role with scopes for fields', async function () {
+      it('should grant permission for an allowed field', async function () {
+        const rbac = new RBACPlus();
+        rbac.grant('user').scope('post:read').onFields('foo', '!bar');
+        const permission = await rbac.can('user', 'post:read:foo');
+        expect(permission.granted).toBeTruthy();
+      });
+
+      it('should deny permission for a !negated field', async function () {
+        const rbac = new RBACPlus();
+        rbac.grant('user').scope('post:read').onFields('foo', '!bar');
+        const permission = await rbac.can('user', 'post:read:bar');
+        expect(permission.granted).toBeFalsy();
+      });
+
+      it('should allow permission fields matched by wildcard', async function () {
+        const rbac = new RBACPlus();
+        rbac.grant('user').scope('post:read').onFields('*', '!bar');
+        const permission = await rbac.can('user', 'post:read:foo');
+        expect(permission.granted).toBeTruthy();
+      });
+      it('should allow permission fields with wildcard except for !negated fields', async function () {
+        const rbac = new RBACPlus();
+        rbac.grant('user').scope('post:read').onFields('*', '!bar');
+        const permission = await rbac.can('user', 'post:read:bar');
+        expect(permission.granted).toBeFalsy();
+      });
+
+    });
+
     describe('with multiple scopes for the same action', function () {
       const rbac = new RBACPlus();
       const condition1 = (ctx: IContext) => ctx === 1;
