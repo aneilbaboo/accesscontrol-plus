@@ -258,10 +258,6 @@ export class Scope extends Resource {
     return this;
   }
 
-  public explain(explanation: IExplanation | string | object) {
-    //
-  }
-
   /**
    * Generate acceptable fields dynamically, based on the context
    * E.g.,

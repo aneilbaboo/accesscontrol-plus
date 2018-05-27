@@ -2,7 +2,7 @@
 
 # RBACPlus
 
-Role based access control with inheritance and attribute tests
+Role based access control with inheritance, dynamic attribute tests, and more
 
 ```shell
 npm install rbac-plus

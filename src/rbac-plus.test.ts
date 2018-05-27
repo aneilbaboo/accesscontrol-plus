@@ -98,6 +98,41 @@ describe('RBACPlus', async function () {
             expect(rbac.grant('user').scope('Post:read').or((ctx: IContext) => true)).toBeInstanceOf(Scope);
           });
 
+          it('should allow adding multiple and expressions', function () {
+            const rbac = new RBACPlus();
+            expect(
+              rbac.grant('user').scope('Post:read')
+                .and((ctx: IContext) => true, (cts: IContext) => true)
+            ).toBeInstanceOf(Scope);
+          });
+
+          it('should allow adding multiple or expressions', function () {
+            const rbac = new RBACPlus();
+            function test(ctx: IContext) { return true; }
+            expect(
+              rbac.grant('user').scope('Post:read')
+                .or(test, test, test)
+            ).toBeInstanceOf(Scope);
+          });
+
+          it('should allow adding multiple where expressions', function () {
+            const rbac = new RBACPlus();
+            function test(ctx: IContext) { return true; }
+            expect(
+              rbac.grant('user').scope('Post:read')
+                .where(test, test, test)
+            ).toBeInstanceOf(Scope);
+          });
+
+          it('should allow chaining of and and or expressions', function () {
+            const rbac = new RBACPlus();
+            function test(ctx: IContext) { return true; }
+            expect(
+              rbac.grant('user').scope('Post:read')
+                .where(test).and(test).or(test)
+            ).toBeInstanceOf(Scope);
+          });
+
           describe('when denied', function () {
             it('should create a scope which is denied', function () {
               const rbac = new RBACPlus();

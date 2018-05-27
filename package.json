@@ -1,7 +1,7 @@
 {
   "name": "rbac-plus",
   "version": "1.4.5",
-  "description": "Role based access control with inheritance and attribute tests",
+  "description": "Role based access control with inheritance, dynamic attribute tests, and more",
   "keywords": [
     "rbac",
     "abac",
