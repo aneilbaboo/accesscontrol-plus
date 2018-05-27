@@ -5,6 +5,8 @@
 version: 2
 jobs:
   build:
+    environment:
+      CC_TEST_REPORTER_ID: a86374f5ecc60c9ef5008bf95b792690856850ebba3c0c8a5d42f8cdfb61c2e5
     docker:
       # specify the version you desire here
       - image: circleci/node:7.10
@@ -28,10 +30,21 @@ jobs:
 
       - run: yarn install
 
+      - run:
+          name: Setup Code Climate test-reporter
+          command: |
+            curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+            chmod +x ./cc-test-reporter
+
       - save_cache:
           paths:
             - node_modules
           key: v1-dependencies-{{ checksum "package.json" }}
 
       # run tests!
-      - run: yarn lint && yarn test
+      - run:
+          name: Run Tests
+          command: |
+            yarn lint
+            yarn test -- --coverage
+            yarn codecov
