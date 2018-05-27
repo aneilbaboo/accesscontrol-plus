@@ -17,6 +17,7 @@
     "LICENSE"
   ],
   "scripts": {
+    "lint": "tslint 'src/*.ts' 'src/**/*.ts'",
     "test": "jest",
     "build": "tsc",
     "prepare": "yarn build"
