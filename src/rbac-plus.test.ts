@@ -215,8 +215,8 @@ describe('RBACPlus', async function () {
     });
   });
 
-  describe('#can', async function () {
-    describe('role with where scope', async function () {
+  describe('#can,', async function () {
+    describe('when there are where clauses,', async function () {
       const userOwnsResource = ({resource, user}) => resource.ownerId === user.id;
       const rbac = new RBACPlus();
       rbac.grant('user')
@@ -239,7 +239,7 @@ describe('RBACPlus', async function () {
           user: { id: 123 }
         });
         expect(permission.granted).toBeUndefined();
-        expect(permission.denied).toEqual([{request: 'user:Post:create::userOwnsResource'}]);
+        expect(permission.denied).toEqual(['grant:user:Post:create:0::userOwnsResource']);
       });
 
       it('should return a permission where denied is an empty list when no scope matched', async function () {
@@ -249,7 +249,46 @@ describe('RBACPlus', async function () {
       });
     });
 
-    describe('role with scopes for fields', async function () {
+    describe('when wildcard elements exist,', function () {
+      it('should grant when a wildcard role matches', async function () {
+        const rbac = new RBACPlus();
+        rbac.grant('*').scope('post:read');
+        const permission = await rbac.can('unknownRole', 'post:read');
+        expect(permission.granted).toMatch(/grant:\*:post:read:\d::/);
+      });
+
+      it('should grant when a wildcard role matches, even when other roles exist', async function () {
+        const rbac = new RBACPlus();
+        rbac
+          .grant('*').scope('post:read')
+          .grant('user').scope('post:read');
+
+        const permission = await rbac.can('unknownRole', 'post:read');
+        expect(permission.granted).toMatch(/grant:\*:post:read:\d::/);
+      });
+      it('should grant when a wildcard resource matches', async function () {
+        const rbac = new RBACPlus();
+        rbac.grant('user')
+          .resource('post')
+            .action('read')
+          .resource('*')
+            .action('read');
+        const permission = await rbac.can('user', 'otherResource:read');
+        expect(permission.granted).toMatch(/grant:user:\*:read:\d::/);
+      });
+
+      it('should grant when a wildcard action matches', async function () {
+        const rbac = new RBACPlus();
+        rbac.grant('user')
+          .resource('post')
+            .action('create')
+            .action('*');
+        const permission = await rbac.can('user', 'post:read');
+        expect(permission.granted).toMatch(/grant:user:post:\*:\d::/);
+      });
+    });
+
+    describe('when onFields has been used,', async function () {
       it('should grant permission for an allowed field', async function () {
         const rbac = new RBACPlus();
         rbac.grant('user').scope('post:read').onFields('foo', '!bar');
@@ -372,7 +411,7 @@ describe('RBACPlus', async function () {
           .grant('user').inherits('public');
 
         const permission = await rbac.can('user', 'read:post');
-        expect(permission.granted).toEqual('public:read:post::All');
+        expect(permission.granted).toEqual('grant:public:read:post:0::All');
       });
     });
 
@@ -387,10 +426,10 @@ describe('RBACPlus', async function () {
 
       it('should grant permission for each scope', async function () {
         const p1 = await rbac.can('user', 'Post:read', 1);
-        expect(p1.granted).toEqual('user:Post:read::condition1');
+        expect(p1.granted).toEqual('grant:user:Post:read:0::condition1');
 
         const p2 = await rbac.can('user', 'Post:read', 2);
-        expect(p2.granted).toEqual('user:Post:read::condition2');
+        expect(p2.granted).toEqual('grant:user:Post:read:1::condition2');
       });
 
       it('should distinguish fields for each granted scope on the action', async function () {

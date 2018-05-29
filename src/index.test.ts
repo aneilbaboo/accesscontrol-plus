@@ -68,7 +68,7 @@ describe('Given the README.md example,', function () {
       user: null, resource: published
     });
     expect(permission.granted).toBeFalsy();
-    expect(permission.denied).toEqual([{ request: 'public:article:read:disallowedPublicField:articleIsPublished' }]);
+    expect(permission.denied).toEqual(['grant:public:article:read:0:disallowedPublicField:']);
   });
 
   it('should not let the public read fields which have not been implicitly or explicitly allowed', async function () {
@@ -76,18 +76,15 @@ describe('Given the README.md example,', function () {
       user: null, resource: published
     });
     expect(permission.granted).toBeFalsy();
-    expect(permission.denied).toEqual([{
-      request: 'public:article:read:unmentionedField:articleIsPublished'
-    }]);
+    expect(permission.denied).toHaveLength(1);
+    expect(permission.denied[0]).toMatch(/grant:public:article:read:\d::/);
   });
 
   it('should not let the public read an unpublished article', async function () {
     const permission = await rbac.can('public', 'article:read', { user: null, resource: draft });
     expect(permission.granted).toBeFalsy();
     expect(permission.denied).toHaveLength(1);
-    expect(permission.denied[0]).toEqual({
-      request: 'public:article:read::articleIsPublished'
-    });
+    expect(permission.denied[0]).toMatch(/^grant:public:article:read:\d::articleIsPublished/);
   });
 
   it('should allow an admin to read all fields on the user except explicitly denied ones', async function () {
@@ -112,9 +109,7 @@ describe('Given the README.md example,', function () {
     const permission = await rbac.can('admin', 'article:update', { user: adminUser, resource: draft});
     expect(permission.denied).toBeDefined();
     expect(permission.denied).toHaveLength(1);
-    expect(permission.denied).toEqual([{
-      request: 'author:article:update::userIsResourceOwner'
-    }]);
+    expect(permission.denied[0]).toMatch(/grant:author:article:update:\d::userIsResourceOwner/);
   });
 
   it('should allow an admin to read a draft article if they are impersonating the user', async function () {

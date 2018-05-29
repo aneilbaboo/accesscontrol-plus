@@ -6,7 +6,7 @@ describe('Permission', function () {
       const permission = new Permission();
       expect(permission.denied).toBeFalsy();
       permission.deny('foo');
-      expect(permission.denied).toEqual([{request: 'foo'}]);
+      expect(permission.denied).toEqual(['foo']);
     });
 
     it('should allow adding an empty denial', function () {

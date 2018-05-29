@@ -1,26 +1,30 @@
 /// <reference path="./interfaces.ts" />
 
-import { IRequest, IDenial, IExplanation, IConstraint, IFieldDefs, IMap, IPermission } from './interfaces';
+import {
+  IExplanation, IConstraint, IFieldDefs, IMap, IPermission, IScopeDef, IScopeRequest
+} from './interfaces';
 
 export class Permission implements IPermission {
-  private _granted?: IRequest;
-  private _denied?: IDenial[];
+  private _denied?: IScopeRequest[] | void;
   private _constraint?: IConstraint;
   private _fields?: IFieldDefs;
+  private _granted?: IScopeRequest;
 
-  public get granted(): IRequest | void { return this._granted; }
+  public get granted(): IScopeRequest | void {
+    return this._granted;
+  }
   public get denied() { return this._denied; }
   public get constraint() { return this._constraint; }
   public get fields() { return this._fields || {}; }
   public field(field: string): boolean {
     if (this._granted && this._fields) {
-      return Permission.testField(field, this._fields);
+      return Permission.testField(field, this._fields)[1];
     }
     return false;
   }
 
-  public grant(scopeRequest: string, fields?: IFieldDefs, constraint?: IConstraint): void {
-    if (this._granted || !scopeRequest) {
+  public grant(scopeRequest: IScopeRequest, fields?: IFieldDefs, constraint?: IConstraint): void {
+    if (this._granted) {
       throw new Error('Attempt to change permission grant');
     }
     this._granted = scopeRequest;
@@ -28,18 +32,20 @@ export class Permission implements IPermission {
     this._constraint = constraint;
   }
 
-  public deny(scopeRequest?: string, explanation?: IExplanation): void {
+  public deny(scopeRequest?: IScopeRequest, fields?: IFieldDefs): void {
     this._denied = this._denied ? this._denied : [];
     if (scopeRequest) {
-      this._denied.push({ request: scopeRequest, explanation });
+      this._denied.push(scopeRequest);
     }
   }
 
-  public static testField(field: string, fields: IFieldDefs) {
+  public static testField(field: string, fields: IFieldDefs): [string, boolean] {
     if (fields.hasOwnProperty(field)) {
-      return fields[field];
+      return [field, fields[field]];
+    } else if (fields.hasOwnProperty('*')) {
+      return ['*', fields['*']];
     } else {
-      return fields['*'];
+      return ['', false];
     }
   }
 }

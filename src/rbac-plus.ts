@@ -1,15 +1,14 @@
 /// <reference path="./interfaces.ts" />
 /// <reference path="./permission.ts" />
-
+import { isArray } from 'util';
 import {
-  IRoleDef, IMap, IRoleDefs, IRequest, IDenial, IScopeDefs, IResourceDef,
+  IRoleDef, IMap, IRoleDefs, IScopeDef, IResourceDef,
   ICondition, IConstraint, IContext,
   IEffect, IExplanation,
   IFieldDefs, IFieldGenerator, IFieldTest,
   IPermission
 } from './interfaces';
 import { Permission } from './permission';
-import { isArray } from 'util';
 
 export function All() { return true; }
 
@@ -51,6 +50,15 @@ export class RBACPlus {
     return permission;
   }
 
+  private getWithDefaultWildcard<T>(key: string, obj: IMap<T>): [string, T] {
+    let value = obj[key];
+    if (value) {
+      return [key, value];
+    } else {
+      return ['*', obj['*']];
+    }
+  }
+
   private async canRole(
     roleName: string,
     resourceName: string,
@@ -58,34 +66,33 @@ export class RBACPlus {
     field: string,
     context: IContext,
     permission: Permission): Promise<boolean> {
-      const role: IRoleDef = this.roles[roleName] || this.roles['*'];
-      if (!role) {
-        return false;
-      }
+      let role: IRoleDef, resource: IResourceDef, action: IScopeDef[];
+      let testedRoleName, testedResourceName, testedActionName;
+      [testedRoleName, role]  = this.getWithDefaultWildcard(roleName, this.roles);
+      if (role) {
+        [testedResourceName, resource] = this.getWithDefaultWildcard(resourceName, role.resources);
 
-      const roleResource = role.resources[resourceName] || role.resources['*'];
-
-      if (roleResource) {
-        const scopes = roleResource[actionName] || roleResource['*'];
-        let exit = false;
-        if (scopes) {
-          const scopeRequest = [roleName, resourceName, actionName, field || ''].join(':');
-          const [granted, terminate] = await this.processScopes(scopes, field, context, scopeRequest, permission);
-          if (terminate) {
-            return granted;
+        if (resource) {
+          [testedActionName, action] = this.getWithDefaultWildcard(actionName, resource);
+          if (action) {
+            const actionPath = `${testedRoleName}:${testedResourceName}:${testedActionName}`;
+            const [granted, terminate] = await this.canAction(action, actionPath, field, context, permission);
+            if (terminate) {
+              return granted;
+            }
           }
         }
-      }
 
-      if (role.inherits) {
-        for (const inheritedRole of role.inherits) {
-          if (await this.canRole(inheritedRole, resourceName, actionName, field, context, permission)) {
-            return true;
+        if (role.inherits) {
+          for (const inheritedRole of role.inherits) {
+            if (await this.canRole(inheritedRole, resourceName, actionName, field, context, permission)) {
+              return true;
+            }
           }
         }
-      }
 
-      permission.deny();
+        permission.deny();
+      }
 
       return false;
     }
@@ -122,40 +129,94 @@ export class RBACPlus {
    * @returns {Array<boolean, boolean>} granted, terminate
    * @memberof RBACPlus
    */
-  private async processScopes(
-    scopes: IScopeDefs[], field: string | void, context: IContext, partialscopeRequest: string, permission: Permission
+  private async canAction(
+    action: IScopeDef[], actionPath: string, field: string | void, context: IContext, permission: Permission
   ): Promise<[boolean, boolean]> {
-    let terminate = false;
-    for (const scope of scopes) {
-      const scopeRequest = `${partialscopeRequest}:${scope.condition.name}`;
-      let fields = await this.generateFields(scope, context);
-      let fieldTest = !field || Permission.testField(field, fields);
-      let conditionTest = await this.testCondition(scope.condition, context);
-      if (scope.effect === 'grant') {
-        if (fieldTest && conditionTest) {
-          const constraint = (scope.constraint instanceof Function ?
-            await scope.constraint(context)
-            : scope.constraint
-          );
-          permission.grant(scopeRequest, fields, constraint);
-          return [true, true];
-        } else { // failed to grant:
-          permission.deny(scopeRequest);
-          terminate = !!field && !fieldTest; // field present, but fieldTest failed
-        }
-      } else { // effect === 'deny'
-        if (fieldTest && conditionTest) { // explicitly denied
-          permission.deny(scopeRequest);
-          terminate = true;
-          break;
-        } // else: do nothing if deny failed
+    let granted, terminate = false;
+    let scopeIndex = 0;
+    for (const scope of action) {
+      const scopePath = `${scope.effect}:${actionPath}:${scopeIndex}`;
+      [granted, terminate] = await this.canScope(scope, scopePath, field, context, permission);
+      if (terminate) {
+        return [granted, terminate];
       }
+      scopeIndex++;
     }
 
-    return [false, terminate];
+    return [false, false];
   }
 
-  private async generateFields(scope: IScopeDefs, context: IContext): Promise<IFieldDefs> {
+  private async canScope(
+    scope: IScopeDef,
+    scopePath: string,
+    field: string |  void,
+    context: IContext,
+    permission: Permission
+  ): Promise<[boolean, boolean]> {
+    if (scope.effect === 'grant') {
+      return await this.canGrantScope(scope, scopePath, field, context, permission);
+    } else { // effect === 'deny'
+      return await this.canDenyScope(scope, scopePath, field, context, permission);
+    }
+  }
+
+  private async canGrantScope(
+    scope: IScopeDef,
+    scopePath: string,
+    field: string | void,
+    context: IContext,
+    permission: Permission
+  ): Promise<[boolean, boolean]> {
+    const [success, fields, permissionPath] = await this.testScope(scope, scopePath, field, context);
+    if (success) {
+      const constraint = (scope.constraint instanceof Function ?
+        await scope.constraint(context)
+        : scope.constraint
+      );
+      permission.grant(permissionPath, fields, constraint);
+      return [true, true];
+    } else { // failed to grant:
+      permission.deny(permissionPath, fields);
+      return [false, false];
+    }
+  }
+
+  private async canDenyScope(
+    scope: IScopeDef,
+    scopePath: string,
+    field: string | void,
+    context: IContext,
+    permission: Permission
+  ): Promise<[boolean, boolean]> {
+    const [success, fields, permissionPath] = await this.testScope(scope, scopePath, field, context);
+    if (success) {
+      permission.deny(permissionPath, fields);
+      return [false, true]; // explicitly denied
+    } else {
+      return [false, false]; // failed to deny
+    }
+  }
+
+  private async testScope(
+    scope: IScopeDef,
+    scopePath: string,
+    field: string | void,
+    context: IContext
+  ): Promise<[boolean, IMap<boolean>, string]> {
+    const fields = await this.generateFields(scope, context);
+    const [matchedField, fieldTest] = field ? Permission.testField(field, fields) :  [undefined, true];
+    const conditionTest = fieldTest && await this.testCondition(scope.condition, context);
+    const permissionPath = this.permissionPath(scopePath, matchedField, fieldTest, scope.condition);
+    const success = !!(fieldTest && conditionTest);
+    return [success, fields, permissionPath];
+  }
+
+  private permissionPath(scopePath: string, field: string | void, fieldTest: boolean, condition: ICondition | void) {
+    const conditionName = fieldTest ? (condition ? condition.name || 'unnamedCondition' : '') : '';
+    return `${scopePath}:${field ? field : ''}:${conditionName}`;
+  }
+
+  private async generateFields(scope: IScopeDef, context: IContext): Promise<IFieldDefs> {
     if (scope.fieldGenerator) {
       return await scope.fieldGenerator(context);
     } else {
@@ -339,7 +400,7 @@ export class Scope extends Resource {
     this._scope.condition = value;
   }
 
-  protected get _scope(): IScopeDefs {
+  protected get _scope(): IScopeDef {
     return this._resource[this.actionName][this.scopeIndex];
   }
 }

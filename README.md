@@ -117,20 +117,49 @@ userRole.scope('post:create')
 userRole.resource('post').action('create')
 userRole.resource('post').create // see CRUD shortcuts
 ```
+##### How a permission is determined
+Given, a request for a user role to read the text field of a post resource:
+```js
+// request permission to read the text field of a post:
+const permission = rbacPlus.can('user', 'post:read:text', context);
+```
+1. Look for the specified role (`user`)
+   - if `user` doesn't exist, look for the `*` role
+   - if no role can be found, return a denied permission
+   - otherwise, continue
+2. Look for the specified resource (`post`) on the role
+   - if `post` resource doesn't exist, look for the `*` resource
+   - if no resource can be found, return a denied permission
+3. Look for the `read` action
+   - if `read` action doesn't exist, look for the `*` action
+   - if no action can be found, return a denied permission
+   - otherwise, there will be a list of one or more scopes defined for the action
+4. Iterate through each scope
+   - Check whether the field (if requested in the call to `can`) is granted by the scope, and whether the condition (if provided) is satisfied. If these tests are satisfied, generate a permission and return it
+5. If no scope can be found for the current role, repeat this process for all inherited roles until finished
+6. If no permission was found, return a permission where `denied` contains descriptions of all the scopes which matched but failed
 
 #### Permissions
 A `permission` is an instance of the `Permission` class returned by `RBACPlus#can`:
 ```typescript
 const permission: Permission = await rbacPlus.can('user', 'post:read');
 
-// If the permission is granted
-permission.granted === "user:post:read" // or similar
+// If the permission is granted, it is set to a "permission path", which
+// which shows which scope tested successfully
+permission.granted === "grant:user:post:read:0:::"
 
-// if permission is denied:
-permission.denied === [ { request: "..." }, { request: "..." } ] // request represent the scopes that were denied
+// if permission is denied, the permission paths of all scopes which were attempted
+//
+permission.denied === [ "..." , "..." } ] // the tests attempted and failed
 ```
 If [constraints](##withConstraint) were defined for the scope, the permission will contain a `constraint` key.
 
+##### permission paths
+Permission paths are strings structured as:
+```js
+"{grant|deny}:{role}:{resource}:{action}:{scopeIndex}:{field}:{conditionName}"
+```
+Note: the `scopeIndex` indicates which
 
 #### Conditions
 
@@ -155,7 +184,7 @@ permission = await rbacPlus.can('user', 'post:update',
   { user:     { id:      1 },
     resource: { ownerId: 1 }});
 
-permission.granted // => 'user:post:update::userIsOwner'
+permission.granted // => 'grant:user:post:update:0::userIsOwner'
 ```
 
 If a condition throws an error, it is treated as though it returned `false`. (Note: this may cause unexpected behavior if a condition is used to `deny`, so this behavior may change in the future, such that exceptions will be treated as `true` for `deny`).
@@ -233,31 +262,15 @@ Async function returning a permission indicating whether the given role can acce
 // (see Scope #where, #and, #or)
 const context = { user: { id: 'the-user-id' } };
 // rbacPlus.can(role, scope, context)
-await rbacPlus.can('admin', 'delete:user', context);
+const permission = await rbacPlus.can('admin', 'delete:user', context);
+if (permission.granted) {
+  // delete the user
+} else {
+  // report access denied
+}
 ```
 
 The first argument can also be a list of role names.
-
-#### advanced constructor
-The constructor can also be passed a Javascript object which defines the policies directly. This is the underlying structure that the RBACPlus methods operate on:
-```js
-import {RBACPlus, All} from 'rbac-plus';
-const rbac = new RBACPlus({ // this is the underlying structure the API builds
-  admin: {                  // and uses to determine permissions
-    resources: {
-      user: {
-        delete: {
-          condition: All,
-          effect: 'grant'
-        }
-      }
-    }
-    inherits: [ 'user' ]
-  }
-});
-
-```
-
 
 ### Role
 Represents a named role.
@@ -358,21 +371,27 @@ Restrict the grant/denial to specific fields. Provide a list of fieldNames. Use 
 // grant on all fields
 rbacPlus.grant('admin').scope('user:read')
   .onFields('*');
-rbacPlus.can('admin', 'user:read:superPrivateData'); // permission.granted => yes
+rbacPlus.can('admin', 'user:read:superPrivateData');
+// permission.granted => "grant:admin:user:read:0:superPrivateData:"
 ```
 
 ```js
 // deny on specific fields
 rbacPlus.grant('admin').scope('user:read')
   .onFields('*', '!privateData');
-await rbacPlus.can('admin', 'user:read:privateData'); // permission.granted => no
-await rbacPlus.can('admin', 'user:read:name'); // permission.granted => yes
+permission = await rbacPlus.can('admin', 'user:read:privateData');
+// permission.granted => undefined
+// permission.denied = ["grant:admin:user:read:0:privateData:"]
+permission = await rbacPlus.can('admin', 'user:read:name');
+// permission.granted = "grant:admin:user:read:0:name:"
 ```
+
 ```js
 // grant on specific fields
 rbacPlus.grant('admin').scope('user:read')
   .onFields('name');
-await rbacPlus.can('admin', 'user:read:name'); // permission.granted => yes
+await rbacPlus.can('admin', 'user:read:name');
+// permission.granted => yes
 await rbacPlus.can('admin', 'user:read:phoneNumber'); // permission.granted => no
 ```
 
