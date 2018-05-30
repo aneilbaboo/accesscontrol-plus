@@ -12,7 +12,7 @@ import { Permission } from './permission';
 
 export function All() { return true; }
 
-export class RBACPlus {
+export class AccessControlPlus {
   constructor(public roles: IRoleDefs = {}) {}
 
   public grant(roleName: string): Role {
@@ -27,7 +27,7 @@ export class RBACPlus {
 
   /**
    * Tests whether one or more roles is authorized to perform the request with the given requirements
-   * E.g., rbac.can('user', 'Report:update', { ownerId: 'auth0|1234' }, { userId: 'auth0|1234' })
+   * E.g., ac.can('user', 'Report:update', { ownerId: 'auth0|1234' }, { userId: 'auth0|1234' })
    *   // tests whether 'user' role can 'Report:update' for resource having ownerId='auth0|1234'
    *   // given a request context { userId: 'auth0|1234' }
    *
@@ -35,7 +35,7 @@ export class RBACPlus {
    * @param {string} scope
    * @param {IContext} [context]
    * @returns {Promise<IPermission>}
-   * @memberof RBACPlus
+   * @memberof AccessControlPlus
    */
   public async can(roleNames: string | string[], scope: string, context?: IContext): Promise<IPermission> {
     const [resourceName, actionName, field] = scope.split(':');
@@ -127,7 +127,7 @@ export class RBACPlus {
    * @param {string} scopeRequest
    * @param {Permission} permission
    * @returns {Array<boolean, boolean>} granted, terminate
-   * @memberof RBACPlus
+   * @memberof AccessControlPlus
    */
   private async canAction(
     action: IScopeDef[], actionPath: string, field: string | void, context: IContext, permission: Permission
@@ -225,7 +225,7 @@ export class RBACPlus {
   }
 }
 
-export class Role extends RBACPlus {
+export class Role extends AccessControlPlus {
   constructor(roles: IRoleDefs, public readonly roleName: string, public readonly effect: IEffect) {
     super(roles);
   }

@@ -1,14 +1,15 @@
 {
-  "name": "rbac-plus",
-  "version": "1.5.0",
-  "description": "Role based access control with inheritance, dynamic attribute tests, and more",
+  "name": "accesscontrol-plus",
+  "version": "1.0.0",
+  "description": "Rich access control in an easy to read syntax featuring roles with inheritance, dynamic attribute tests, and more",
   "keywords": [
     "rbac",
     "abac",
     "permissions",
     "authorization",
     "roles",
-    "scopes"
+    "scopes",
+    "accesscontrol"
   ],
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -25,14 +26,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/aneilbaboo/rbac-plus.git"
+    "url": "git+https://github.com/aneilbaboo/accesscontrol-plus.git"
   },
   "author": "",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/aneilbaboo/rbac-plus/issues"
+    "url": "https://github.com/aneilbaboo/accesscontrol-plus/issues"
   },
-  "homepage": "https://github.com/aneilbaboo/rbac-plus#readme",
+  "homepage": "https://github.com/aneilbaboo/accesscontrol-plus#readme",
   "devDependencies": {
     "@types/jest": "^22.2.3",
     "@types/node": "^10.0.6",

@@ -1,19 +1,19 @@
-[![CircleCI](https://circleci.com/gh/aneilbaboo/rbac-plus/tree/master.svg?style=shield&circle-token=dd1dce6e44faad80e9205bd87f081ae5f0d21428)](https://circleci.com/gh/aneilbaboo/rbac-plus/tree/master) [![codecov](https://codecov.io/gh/aneilbaboo/rbac-plus/branch/master/graph/badge.svg)](https://codecov.io/gh/aneilbaboo/rbac-plus) [![Maintainability](https://api.codeclimate.com/v1/badges/701ac0ef9089cee1a13a/maintainability)](https://codeclimate.com/github/aneilbaboo/rbac-plus/maintainability)
+[![CircleCI](https://circleci.com/gh/aneilbaboo/accesscontrol-plus.svg?style=shield&circle-token=c9c24e27ca8f0e9ab2e1e339ecc884f97e31372e)](https://circleci.com/gh/aneilbaboo/accesscontrol-plus) [![codecov](https://codecov.io/gh/aneilbaboo/accesscontrol-plus/branch/master/graph/badge.svg)](https://codecov.io/gh/aneilbaboo/accesscontrol-plus) [![Maintainability](https://api.codeclimate.com/v1/badges/e7807330f3780ee15802/maintainability)](https://codeclimate.com/github/aneilbaboo/accesscontrol-plus/maintainability)
 
-# RBACPlus
+# Access Control Plus
 
-Role based access control with inheritance, dynamic attribute tests, and more
+Rich access control in an easy to read syntax featuring roles with inheritance, dynamic attribute tests, and more
 
 ```shell
-npm install rbac-plus
+npm install accesscontrol-plus
 ```
 
 ## Features
 
 * Write policies that are easy to read
 * Define roles using inheritance
-* Write fine grained permissions
-* Test arbitrary attributes (e.g. of the request or requested resource)
+* Integrate with your backend
+* Grant or deny permissions on fields of a resource
 * Restrict permissions to fields on the resource
 * Apply constraints to operations on the resource
 * Get explanation why a permission was granted or denied
@@ -25,16 +25,16 @@ npm install rbac-plus
 
 ```js
 //
-// Create RBACPlus instance to manage a group of roles
+// Create AccessControlPlus instance to manage a group of roles
 //
-import {RBACPlus} from 'rbac-plus';
+import {AccessControlPlus} from 'ac-plus';
 
-const rbacPlus = new RBACPlus();
+const accessControl = new AccessControlPlus();
 
 //
 // Define roles, scopes and conditions
 //
-rbacPlus
+accessControl
   .deny('public').resource('*').action('*')
   .grant('user')
     .resource('posts')
@@ -55,17 +55,17 @@ function userIsAuthor({user, post}) {
 //
 let permission;
 
-permission = await rbacPlus.can('user', 'posts:create');
+permission = await accessControl.can('user', 'posts:create');
 // permission.granted => truthy
 
-permission = await rbacPlus.can('user', 'users:create');
+permission = await accessControl.can('user', 'users:create');
 // permission.granted => falsy
 
-permission = await rbacPlus.can('admin', 'users:create');
+permission = await accessControl.can('admin', 'users:create');
 // permission.granted => truthy (because of inheritance)
 
 // using context:
-permission = await rbacPlus.can(
+permission = await accessControl.can(
   'user',                                   // role
   'posts:update',                           // scope
   { user: {id: 123}, post: {authorId: 123}} // context
@@ -76,18 +76,18 @@ permission = await rbacPlus.can(
 
 ### Role Based Access Control (RBAC) versus Attribute Based Access Control (ABAC)
 
-Role based authorization defines permissions in terms of roles in an organization - users, editors, authors, etc.  This is convenient, but RBAC relies on static definitions and can't use contextual information (time, location, dynamic group membership, etc) to determine access rights.  In traditional RBAC, contextual tests must be performed in other layers of an application. On the other hand, ABAC allows use of contextual information, but is also more complicated, and is [sometimes described as overkill](https://objectpartners.com/2017/06/16/abac-or-rbac/ ) for solving typical problems. For more discussion, see: https://iamfortress.net/2017/02/15/rbac-vs-abac/.
+Role based authorization defines permissions in terms of roles in an organization - users, editors, authors, etc.  This is convenient, but RBAC relies on static definitions and can't use contextual information (time, location, dynamic group membership, etc) to determine access rights.  In traditional RBAC, contextual tests must be performed in other layers of an application. On the other hand, ABAC allows use of contextual information, but is also more complicated, and is [sometimes described as overkill](https://objectpartners.com/2017/06/16/abac-or-ac/ ) for solving typical problems. For more discussion, see: https://iamfortress.net/2017/02/15/ac-vs-abac/.
 
-### RBACPlus: RBAC with ABAC-powers
+### AccessControlPlus: RBAC with ABAC-powers
 
 This library combines useful properties of RBAC and ABAC. You define roles and permissions, making it easy to define and manage your policies, like tradition RBAC, but also implement fine-grained context-sensitive tests, like ABAC.
 
-The `RBACPlus` class provides the top-level API of this library. Use it to define role permissions (using `grant` or `deny`), add conditions using `where`, `and` and `or`, and test whether a permission (using `can`). (See [API](#API)).
+The `AccessControlPlus` class provides the top-level API of this library. Use it to define role permissions (using `grant` or `deny`), add conditions using `where`, `and` and `or`, and test whether a permission (using `can`). (See [API](#API)).
 
 ```typescript
-const rbac = new RBACPlus();
-rbacPlus.deny('public').scope('*:*');
-rbacPlus.grant('author').scope('post:update')
+const ac = new AccessControlPlus();
+accessControl.deny('public').scope('*:*');
+accessControl.grant('author').scope('post:update')
   .where(authorIsResourceOwner); // a function you write which tests attributes
 ```
 ### Effect: Grant or Deny
@@ -110,7 +110,7 @@ A `scope` name is a `resource:action` pair or a `resource:action:field` triplet.
 
 ##### Shortcuts for creating scopes
 ```js
-const userRole = rbacPlus.grant('user');
+const userRole = accessControl.grant('user');
 
 // the following are all equivalent:
 userRole.scope('post:create')
@@ -121,7 +121,7 @@ userRole.resource('post').create // see CRUD shortcuts
 Given, a request for a user role to read the text field of a post resource:
 ```js
 // request permission to read the text field of a post:
-const permission = rbacPlus.can('user', 'post:read:text', context);
+const permission = accessControl.can('user', 'post:read:text', context);
 ```
 1. Look for the specified role (`user`)
    - if `user` doesn't exist, look for the `*` role
@@ -140,9 +140,9 @@ const permission = rbacPlus.can('user', 'post:read:text', context);
 6. If no permission was found, return a permission where `denied` contains descriptions of all the scopes which matched but failed
 
 #### Permissions
-A `permission` is an instance of the `Permission` class returned by `RBACPlus#can`:
+A `permission` is an instance of the `Permission` class returned by `AccessControlPlus#can`:
 ```typescript
-const permission: Permission = await rbacPlus.can('user', 'post:read');
+const permission: Permission = await accessControl.can('user', 'post:read');
 
 // If the permission is granted, it is set to a "permission path", which
 // which shows which scope tested successfully
@@ -173,14 +173,14 @@ Conditions should be *named* functions. The condition name is used to generate a
 
 ```js
 // Add a condition to post:update:
-rbacPlus.grant('user').scope('post:update')
+accessControl.grant('user').scope('post:update')
   .where(userIsOwner); // add a condition
 
 function userIsOwner({user, resource}) {
   return user.id === resource.ownerId;
 }
 
-permission = await rbacPlus.can('user', 'post:update',
+permission = await accessControl.can('user', 'post:update',
   { user:     { id:      1 },
     resource: { ownerId: 1 }});
 
@@ -202,12 +202,12 @@ Fields represent attributes of the resource. They can be allowed or denied using
 
 ```typescript
 // E.g., Allow fields and disallow specific fields:
-rbacPlus.grant('user').resource('post').read.onFields('*', '!stats');
+accessControl.grant('user').resource('post').read.onFields('*', '!stats');
 
 // request permission for action on a specific field:
-rbac.can('user', 'post:read:stats'); // permission denied
-rbac.can('user', 'post:read:foo'); // permission granted
-permission = rbac.can('user', 'post:read');
+ac.can('user', 'post:read:stats'); // permission denied
+ac.can('user', 'post:read:foo'); // permission granted
+permission = ac.can('user', 'post:read');
 // permission granted with
 // permission.fields = { "*": true, "stats": false }
 
@@ -215,12 +215,12 @@ permission = rbac.can('user', 'post:read');
 
 Alternatively, you can request a permission for the action, and you will receive a permission with a `fields` property which is an object describing which fields are accessible:
 ```
-rbac.
+ac.
 
 Field permissions can also be calculated dynamically be providing a function (which can be async). The function returns an Object mapping field names to boolean values indicating whether the field is granted or not.
 E.g., the following is equivalent to the `onFields` call shown above.
 ```typescript
-rbacPlus.grant('user').resource('post').read.onDynamicFields((ctx: Context) => ({
+accessControl.grant('user').resource('post').read.onDynamicFields((ctx: Context) => ({
   '*': true, // grant all fields
   stats: false
 }));
@@ -229,29 +229,29 @@ rbacPlus.grant('user').resource('post').read.onDynamicFields((ctx: Context) => (
 
 ## API
 
-### RBACPlus
+### AccessControlPlus
 
 Top level object which exposes the API.
 
 #### constructor
 ```js
-import {RBACPlus} from 'rbac-plus';
-const rbacPlus = new RBACPlus();
+import {AccessControlPlus} from 'ac-plus';
+const accessControl = new AccessControlPlus();
 ```
 
 #### grant
 
 Returns a Role object which can be used to grant permissions
 ```js
-// rbacPlus.grant(roleName)
-rbacPlus.grant('admin') // => Role instance
+// accessControl.grant(roleName)
+accessControl.grant('admin') // => Role instance
 ```
 
 #### deny
 Returns a Role object which can be used to deny permissions
 ```js
-// rbacPlus.deny(roleName);
-rbacPlus.deny('admin') // => Role instance
+// accessControl.deny(roleName);
+accessControl.deny('admin') // => Role instance
 ```
 
 #### can
@@ -261,8 +261,8 @@ Async function returning a permission indicating whether the given role can acce
 // context is a developer-defined value passed to conditions
 // (see Scope #where, #and, #or)
 const context = { user: { id: 'the-user-id' } };
-// rbacPlus.can(role, scope, context)
-const permission = await rbacPlus.can('admin', 'delete:user', context);
+// accessControl.can(role, scope, context)
+const permission = await accessControl.can('admin', 'delete:user', context);
 if (permission.granted) {
   // delete the user
 } else {
@@ -355,10 +355,10 @@ Note: constraints are deprecated and may be removed from a future version of the
 
 Add a function which returns a constraint useful to the developer for passing to a function that accesses a resource:
 ```js
-rbacPlus.grant('user').scope('article:create')
+accessControl.grant('user').scope('article:create')
   .withConstraint(({user})=>({ ownerId: user.id})); // => Scope
 ...
-let permission = await rbacPlus.can('user', 'article:create', { user: { id: 123 }});
+let permission = await accessControl.can('user', 'article:create', { user: { id: 123 }});
 if (permission.granted) {
   await Article.create(permission.constraint); // { ownerId: 123 }
 }
@@ -369,36 +369,36 @@ Restrict the grant/denial to specific fields. Provide a list of fieldNames. Use 
 
 ```js
 // grant on all fields
-rbacPlus.grant('admin').scope('user:read')
+accessControl.grant('admin').scope('user:read')
   .onFields('*');
-rbacPlus.can('admin', 'user:read:superPrivateData');
+accessControl.can('admin', 'user:read:superPrivateData');
 // permission.granted => "grant:admin:user:read:0:superPrivateData:"
 ```
 
 ```js
 // deny on specific fields
-rbacPlus.grant('admin').scope('user:read')
+accessControl.grant('admin').scope('user:read')
   .onFields('*', '!privateData');
-permission = await rbacPlus.can('admin', 'user:read:privateData');
+permission = await accessControl.can('admin', 'user:read:privateData');
 // permission.granted => undefined
 // permission.denied = ["grant:admin:user:read:0:privateData:"]
-permission = await rbacPlus.can('admin', 'user:read:name');
+permission = await accessControl.can('admin', 'user:read:name');
 // permission.granted = "grant:admin:user:read:0:name:"
 ```
 
 ```js
 // grant on specific fields
-rbacPlus.grant('admin').scope('user:read')
+accessControl.grant('admin').scope('user:read')
   .onFields('name');
-await rbacPlus.can('admin', 'user:read:name');
+await accessControl.can('admin', 'user:read:name');
 // permission.granted => yes
-await rbacPlus.can('admin', 'user:read:phoneNumber'); // permission.granted => no
+await accessControl.can('admin', 'user:read:phoneNumber'); // permission.granted => no
 ```
 
 #### onDynamicFields
 Generate field grants dynamically, given a context. You can use async calls, if needed:
 ```js
-rbacPlus.grant('admin').scope('user:read')
+accessControl.grant('admin').scope('user:read')
   .onDynamicFields(async ({admin, user}: Context) => {
     const permissive = await myBackend.adminHasPermissionFromUser(admin, user);
     if (permissive) {
@@ -410,7 +410,7 @@ rbacPlus.grant('admin').scope('user:read')
 ```
 
 ### Permission
-Object returned by `RBACPlus#can`
+Object returned by `AccessControlPlus#can`
 
 #### granted
 If permission granted this will be a string describing the scope granted.
@@ -428,7 +428,7 @@ permission.field('foo') // => true or false
 ## Extended Example
 
 ```js
-import RBACPlus from 'rbac-plus';
+import AccessControlPlus from 'ac-plus';
 
 function userIsResourceOwner({user, resource}) {
   return user.id === resource.ownerId;
@@ -440,11 +440,11 @@ function articleIsPublished({resource}) {
   return resource.state === 'published';
 }
 
-const rbac = new RBACPlus();
+const ac = new AccessControlPlus();
 //
 // 4 roles in this scenario: public, author, admin, superadmin
 //
-rbac
+ac
   // Define roles:
   //
   // PUBLIC
@@ -493,33 +493,33 @@ const superAdmin = { id: 222 };
 async function testPermissions {
   let permission;
   // public can read published articles
-  permission = await rbacPlus.can('public', 'article:read', { user: null, resource: published });
+  permission = await accessControl.can('public', 'article:read', { user: null, resource: published });
   // permission.granted => truthy
 
   // public can't read draft articles
-  permission = await rbacPlus.can('public', 'article:read', { user: null, resource: draft });
+  permission = await accessControl.can('public', 'article:read', { user: null, resource: draft });
   // permission.granted => falsy
   // permission.denied = ['public:article:read:articleIsPublished']
 
   // author can read their own draft article
-  permission = rbacPlus.can('author', 'article:read', { user, resource: draft });
+  permission = accessControl.can('author', 'article:read', { user, resource: draft });
   // permission.granted => truthy
 
   // auth can update their own article
-  permission = rbacPlus.can('user', 'article:update', { user: user, resource: draft });
+  permission = accessControl.can('user', 'article:update', { user: user, resource: draft });
   // permission.granted => truthy
 
   // admin cannot update an author's article, even if they are impersonating them
-  permission = rbacPlus.can('admin', 'article:update', { user: adminUser, resource: draft});
+  permission = accessControl.can('admin', 'article:update', { user: adminUser, resource: draft});
   // permission.granted => falsy
   // permision.denied = [ 'author:article:update:userIsResourceOwner' ]
 
   // admin can read a draft article if they are impersonating the author
-  permission = rbacPlus.can('admin', 'article:read', { user: adminUser, resource: draft});
+  permission = accessControl.can('admin', 'article:read', { user: adminUser, resource: draft});
   // permission.granted => truthy
 
   // superadmin can do anything to user resources
-  permission = rbacPlus.can('superadmin', 'user:delete', { user: superAdmin, resource: user });
+  permission = accessControl.can('superadmin', 'user:delete', { user: superAdmin, resource: user });
   // permission.granted => truthy
 }
 ```
