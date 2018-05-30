@@ -63,6 +63,14 @@ permission = await accessControl.can('user', 'users:create');
 permission = await accessControl.can('admin', 'users:create');
 // permission.granted => truthy (because of inheritance)
 
+permission = await accessControl.can('user', 'posts:read');
+// permission.granted => truthy
+// permission.field('text') => true (matched by '*')
+// permission.field('dontMatchThisField') => false (explicitly not granted)
+
+permission = await accessControl.can('user', 'posts:read:text')
+// permission.granted => truthy
+
 // using context:
 permission = await accessControl.can(
   'user',                                   // role
@@ -528,7 +536,7 @@ async function testPermissions {
   // admin cannot update an author's article, even if they are impersonating them
   permission = accessControl.can('admin', 'article:update', { user: adminUser, resource: draft});
   // permission.granted => falsy
-  // permision.denied = [ 'author:article:update:userIsResourceOwner' ]
+  // permision.denied = [ 'grant:author:article:update:0::userIsResourceOwner' ]
 
   // admin can read a draft article if they are impersonating the author
   permission = accessControl.can('admin', 'article:read', { user: adminUser, resource: draft});
