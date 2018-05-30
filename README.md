@@ -1,6 +1,15 @@
-[![CircleCI](https://circleci.com/gh/aneilbaboo/accesscontrol-plus.svg?style=shield&circle-token=c9c24e27ca8f0e9ab2e1e339ecc884f97e31372e)](https://circleci.com/gh/aneilbaboo/accesscontrol-plus) [![codecov](https://codecov.io/gh/aneilbaboo/accesscontrol-plus/branch/master/graph/badge.svg)](https://codecov.io/gh/aneilbaboo/accesscontrol-plus) [![Maintainability](https://api.codeclimate.com/v1/badges/e7807330f3780ee15802/maintainability)](https://codeclimate.com/github/aneilbaboo/accesscontrol-plus/maintainability)
-
 # Access Control Plus
+
+[![version](https://img.shields.io/github/package-json/v/aneilbaboo/accesscontrol-plus.svg)]() [![License](https://img.shields.io/github/license/aneilbaboo/accesscontrol-plus.svg)](https://github.com/aneilbaboo/accesscontrol-plus/LICENSE) [![Typescript](https://img.shields.io/badge/written%20in-%20TypeScript%20-6575ff.svg?style=flat-square)](https://www.typescriptlang.org)
+
+[![bitHound Code](https://www.bithound.io/github/aneilbaboo/accesscontrol-plus/badges/code.svg)](https://www.bithound.io/github/aneilbaboo/accesscontrol-plus) [![bitHound Overall Score](https://www.bithound.io/github/aneilbaboo/accesscontrol-plus/badges/score.svg)](https://www.bithound.io/github/aneilbaboo/accesscontrol-plus) [![bitHound Dependencies](https://www.bithound.io/github/aneilbaboo/accesscontrol-plus/badges/dependencies.svg)](https://www.bithound.io/github/aneilbaboo/accesscontrol-plus/master/dependencies/npm) [![bitHound Dev Dependencies](https://www.bithound.io/github/aneilbaboo/accesscontrol-plus/badges/devDependencies.svg)](https://www.bithound.io/github/aneilbaboo/accesscontrol-plus/master/dependencies/npm)
+
+[![CircleCI](https://circleci.com/gh/aneilbaboo/accesscontrol-plus.svg?style=shield&circle-token=c9c24e27ca8f0e9ab2e1e339ecc884f97e31372e)](https://circleci.com/gh/aneilbaboo/accesscontrol-plus) [![codecov](https://codecov.io/gh/aneilbaboo/accesscontrol-plus/branch/master/graph/badge.svg)](https://codecov.io/gh/aneilbaboo/accesscontrol-plus) [![Maintainability](https://api.codeclimate.com/v1/badges/e7807330f3780ee15802/maintainability)](https://codeclimate.com/github/aneilbaboo/accesscontrol-plus/maintainability) [![NSP Status](https://nodesecurity.io/orgs/aneilbaboo/projects/9087af43-e61e-4eea-a810-2c4cd71297ca/badge)](https://nodesecurity.io/orgs/aneilbaboo/projects/9087af43-e61e-4eea-a810-2c4cd71297ca) [![Known Vulnerabilities](https://snyk.io/test/github/aneilbaboo/accesscontrol-plus/badge.svg)](https://snyk.io/test/github/aneilbaboo/accesscontrol-plus)
+
+
+
+ <!-- No dependencies yet, so this badge shows as "pending" [![Dependencies](https://david-dm.org/aneilbaboo/accesscontrol-plus.svg)](https://david-dm.org/aneilbaboo/accesscontrol-plus) -->
+
 
 Rich access control in an easy to read syntax featuring roles with inheritance, dynamic attribute tests, and more
 
