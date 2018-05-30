@@ -12,13 +12,12 @@ npm install accesscontrol-plus
 
 * Write policies that are easy to read
 * Define roles using inheritance
-* Integrate with your backend
-* Grant or deny permissions on fields of a resource
+* Use async functions to test backend resources
 * Restrict permissions to fields on the resource
-* Apply constraints to operations on the resource
 * Get explanation why a permission was granted or denied
-* Use wildcard matching in policies
-* Define policies in parts
+* Use wildcard matching for resources, actions and fields
+* Define policies modularly
+* Apply constraints to operations on the resource
 * Use Typescript
 
 ## Quick start
@@ -90,8 +89,6 @@ accessControl.deny('public').scope('*:*');
 accessControl.grant('author').scope('post:update')
   .where(authorIsResourceOwner); // a function you write which tests attributes
 ```
-### Effect: Grant or Deny
-A grant permits a user
 
 ### Definitions
 
@@ -117,7 +114,26 @@ userRole.scope('post:create')
 userRole.resource('post').action('create')
 userRole.resource('post').create // see CRUD shortcuts
 ```
-##### How a permission is determined
+
+##### Effect: Grant or Deny
+A scope has an effect, which is either `grant` or `deny`, which is determined by how the role is accessed.
+
+E.g.,
+```js
+const ac = new AccessControl();
+ac
+  .grant('user').scope('comments:read') // creates a grant scope
+  .deny('user').scope('comments:*') // creates a deny scope
+```
+
+##### How permission is determined
+
+Scopes are checked in the order defined.
+
+Permission is granted if a `grant` scope is found for the specified `role` (or inherited roles) for the specified `resource`, `action` and optional `field`. If no `grant` scope is matched, the permission is denied where `permission.denied` is an array of strings describing all the scopes which were attempted.
+
+Permission is immediately denied if a `deny` scope is matched.
+
 Given, a request for a user role to read the text field of a post resource:
 ```js
 // request permission to read the text field of a post:
