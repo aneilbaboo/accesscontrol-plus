@@ -26,7 +26,7 @@ npm install accesscontrol-plus
 //
 // Create AccessControlPlus instance to manage a group of roles
 //
-import {AccessControlPlus} from 'ac-plus';
+import {AccessControlPlus} from 'accesscontrol-plus';
 
 const accessControl = new AccessControlPlus();
 
@@ -251,7 +251,7 @@ Top level object which exposes the API.
 
 #### constructor
 ```js
-import {AccessControlPlus} from 'ac-plus';
+import {AccessControlPlus} from 'accesscontrol-plus';
 const accessControl = new AccessControlPlus();
 ```
 
@@ -444,7 +444,7 @@ permission.field('foo') // => true or false
 ## Extended Example
 
 ```js
-import AccessControlPlus from 'ac-plus';
+import AccessControlPlus from 'accesscontrol-plus';
 
 function userIsResourceOwner({user, resource}) {
   return user.id === resource.ownerId;
