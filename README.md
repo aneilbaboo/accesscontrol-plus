@@ -5,6 +5,8 @@
 [![CircleCI](https://circleci.com/gh/aneilbaboo/accesscontrol-plus.svg?style=shield&circle-token=c9c24e27ca8f0e9ab2e1e339ecc884f97e31372e)](https://circleci.com/gh/aneilbaboo/accesscontrol-plus) [![codecov](https://codecov.io/gh/aneilbaboo/accesscontrol-plus/branch/master/graph/badge.svg)](https://codecov.io/gh/aneilbaboo/accesscontrol-plus) [![Maintainability](https://api.codeclimate.com/v1/badges/e7807330f3780ee15802/maintainability)](https://codeclimate.com/github/aneilbaboo/accesscontrol-plus/maintainability)
 
 [![NSP Status](https://nodesecurity.io/orgs/aneilbaboo/projects/9087af43-e61e-4eea-a810-2c4cd71297ca/badge)](https://nodesecurity.io/orgs/aneilbaboo/projects/9087af43-e61e-4eea-a810-2c4cd71297ca) [![Known Vulnerabilities](https://snyk.io/test/github/aneilbaboo/accesscontrol-plus/badge.svg)](https://snyk.io/test/github/aneilbaboo/accesscontrol-plus)
+![bitHound](https://img.shields.io/bithound/dependencies/github/aneilbaboo/accesscontrol.plus.svg)
+
  <!-- No dependencies yet, so this badge shows as "pending" [![Dependencies](https://david-dm.org/aneilbaboo/accesscontrol-plus.svg)](https://david-dm.org/aneilbaboo/accesscontrol-plus) -->
 
 
