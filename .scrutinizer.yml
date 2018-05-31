@@ -1,0 +1,5 @@
+checks:
+  javascript:
+    code_rating: true
+    duplicate_code: true
+
