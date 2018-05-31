@@ -11,7 +11,7 @@
  <!-- No dependencies yet, so this badge shows as "pending" [![Dependencies](https://david-dm.org/aneilbaboo/accesscontrol-plus.svg)](https://david-dm.org/aneilbaboo/accesscontrol-plus) -->
 
 
-Rich access control in an easy to read syntax featuring roles with inheritance, dynamic attribute tests, and more
+Rich access control featuring roles, inheritance, dynamic attribute tests, backend integration and more.
 
 ```shell
 npm install accesscontrol-plus

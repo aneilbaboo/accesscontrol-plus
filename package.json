@@ -1,7 +1,7 @@
 {
   "name": "accesscontrol-plus",
   "version": "1.0.1",
-  "description": "Rich access control featuring roles with inheritance, dynamic attribute tests, and more",
+  "description": "Rich access control featuring roles, inheritance, dynamic attribute tests, backend integration and more.",
   "keywords": [
     "rbac",
     "abac",
