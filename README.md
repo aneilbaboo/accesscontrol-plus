@@ -1,8 +1,8 @@
 # Access Control Plus
 
-[![version](https://img.shields.io/github/package-json/v/aneilbaboo/accesscontrol-plus.svg)]() [![npm](https://img.shields.io/npm/v/accesscontrol-plus.svg )](https://npmjs.com/accesscontrol-plus) [![License](https://img.shields.io/github/license/aneilbaboo/accesscontrol-plus.svg)](https://github.com/aneilbaboo/accesscontrol-plus/LICENSE) [![Typescript](https://img.shields.io/badge/written%20in-%20TypeScript%20-6575ff.svg)](https://www.typescriptlang.org)
+ [![License](https://img.shields.io/github/license/aneilbaboo/accesscontrol-plus.svg)](https://github.com/aneilbaboo/accesscontrol-plus/LICENSE) [![version](https://img.shields.io/github/package-json/v/aneilbaboo/accesscontrol-plus.svg)]() [![npm](https://img.shields.io/npm/v/accesscontrol-plus.svg )](https://npmjs.com/accesscontrol-plus) [![Typescript](https://img.shields.io/badge/written%20in-%20TypeScript%20-6575ff.svg)](https://www.typescriptlang.org)
 
-[![CircleCI](https://circleci.com/gh/aneilbaboo/accesscontrol-plus.svg?style=shield&circle-token=c9c24e27ca8f0e9ab2e1e339ecc884f97e31372e)](https://circleci.com/gh/aneilbaboo/accesscontrol-plus) [![codecov](https://codecov.io/gh/aneilbaboo/accesscontrol-plus/branch/master/graph/badge.svg)](https://codecov.io/gh/aneilbaboo/accesscontrol-plus) [![Maintainability](https://api.codeclimate.com/v1/badges/e7807330f3780ee15802/maintainability)](https://codeclimate.com/github/aneilbaboo/accesscontrol-plus/maintainability) [![NSP Status](https://nodesecurity.io/orgs/aneilbaboo/projects/9087af43-e61e-4eea-a810-2c4cd71297ca/badge)](https://nodesecurity.io/orgs/aneilbaboo/projects/9087af43-e61e-4eea-a810-2c4cd71297ca) [![Known Vulnerabilities](https://snyk.io/test/github/aneilbaboo/accesscontrol-plus/badge.svg)](https://snyk.io/test/github/aneilbaboo/accesscontrol-plus)
+[![CircleCI](https://circleci.com/gh/aneilbaboo/accesscontrol-plus.svg?style=shield&circle-token=c9c24e27ca8f0e9ab2e1e339ecc884f97e31372e)](https://circleci.com/gh/aneilbaboo/accesscontrol-plus) [![codecov](https://codecov.io/gh/aneilbaboo/accesscontrol-plus/branch/master/graph/badge.svg)](https://codecov.io/gh/aneilbaboo/accesscontrol-plus) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/20890492872f4a61aa5d3a21340aac73)](https://www.codacy.com/app/aneilbaboo/accesscontrol-plus?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=aneilbaboo/accesscontrol-plus&amp;utm_campaign=Badge_Grade) [![Maintainability](https://api.codeclimate.com/v1/badges/e7807330f3780ee15802/maintainability)](https://codeclimate.com/github/aneilbaboo/accesscontrol-plus/maintainability) [![NSP Status](https://nodesecurity.io/orgs/aneilbaboo/projects/9087af43-e61e-4eea-a810-2c4cd71297ca/badge)](https://nodesecurity.io/orgs/aneilbaboo/projects/9087af43-e61e-4eea-a810-2c4cd71297ca) [![Known Vulnerabilities](https://snyk.io/test/github/aneilbaboo/accesscontrol-plus/badge.svg)](https://snyk.io/test/github/aneilbaboo/accesscontrol-plus)
 
 
 
@@ -17,15 +17,14 @@ npm install accesscontrol-plus
 
 ## Features
 
-* Write policies that are easy to read
-* Define roles using inheritance
-* Use async functions to test backend resources
-* Restrict permissions to fields on the resource
-* Get explanation why a permission was granted or denied
-* Use wildcard matching for resources, actions and fields
-* Define policies modularly
-* Apply constraints to operations on the resource
-* Use Typescript
+* Roles with inheritance
+* Integrate backend with async tests
+* Permissions on resource fields
+* Explains why permission was granted or denied
+* Wildcard matching
+* Modular policy definition
+* Define constraints on resources
+* Typescript ready
 
 ## Quick start
 
