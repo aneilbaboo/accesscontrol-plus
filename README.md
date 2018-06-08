@@ -2,7 +2,7 @@
 
  [![License](https://img.shields.io/github/license/aneilbaboo/accesscontrol-plus.svg)](https://github.com/aneilbaboo/accesscontrol-plus/LICENSE) [![version](https://img.shields.io/github/package-json/v/aneilbaboo/accesscontrol-plus.svg)]() [![npm](https://img.shields.io/npm/v/accesscontrol-plus.svg )](https://npmjs.com/accesscontrol-plus) [![Typescript](https://img.shields.io/badge/written%20in-%20TypeScript%20-6575ff.svg)](https://www.typescriptlang.org)
 
-[![CircleCI](https://circleci.com/gh/aneilbaboo/accesscontrol-plus.svg?style=shield&circle-token=c9c24e27ca8f0e9ab2e1e339ecc884f97e31372e)](https://circleci.com/gh/aneilbaboo/accesscontrol-plus) [![codecov](https://codecov.io/gh/aneilbaboo/accesscontrol-plus/branch/master/graph/badge.svg)](https://codecov.io/gh/aneilbaboo/accesscontrol-plus) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/20890492872f4a61aa5d3a21340aac73)](https://www.codacy.com/app/aneilbaboo/accesscontrol-plus?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=aneilbaboo/accesscontrol-plus&amp;utm_campaign=Badge_Grade) [![Maintainability](https://api.codeclimate.com/v1/badges/e7807330f3780ee15802/maintainability)](https://codeclimate.com/github/aneilbaboo/accesscontrol-plus/maintainability) [![NSP Status](https://nodesecurity.io/orgs/aneilbaboo/projects/9087af43-e61e-4eea-a810-2c4cd71297ca/badge)](https://nodesecurity.io/orgs/aneilbaboo/projects/9087af43-e61e-4eea-a810-2c4cd71297ca) [![Known Vulnerabilities](https://snyk.io/test/github/aneilbaboo/accesscontrol-plus/badge.svg)](https://snyk.io/test/github/aneilbaboo/accesscontrol-plus)
+[![CircleCI](https://circleci.com/gh/aneilbaboo/accesscontrol-plus.svg?style=shield&circle-token=c9c24e27ca8f0e9ab2e1e339ecc884f97e31372e)](https://circleci.com/gh/aneilbaboo/accesscontrol-plus) [![codecov](https://codecov.io/gh/aneilbaboo/accesscontrol-plus/branch/master/graph/badge.svg)](https://codecov.io/gh/aneilbaboo/accesscontrol-plus)  [![Maintainability](https://api.codeclimate.com/v1/badges/e7807330f3780ee15802/maintainability)](https://codeclimate.com/github/aneilbaboo/accesscontrol-plus/maintainability) [![NSP Status](https://nodesecurity.io/orgs/aneilbaboo/projects/9087af43-e61e-4eea-a810-2c4cd71297ca/badge)](https://nodesecurity.io/orgs/aneilbaboo/projects/9087af43-e61e-4eea-a810-2c4cd71297ca) [![Known Vulnerabilities](https://snyk.io/test/github/aneilbaboo/accesscontrol-plus/badge.svg)](https://snyk.io/test/github/aneilbaboo/accesscontrol-plus)
 
 
 
@@ -18,12 +18,12 @@ npm install accesscontrol-plus
 ## Features
 
 * Roles with inheritance
-* Integrate backend with async tests
+* Backend integration 
 * Permissions on resource fields
-* Explains why permission was granted or denied
+* Explanations for why permissions were granted or denied
 * Wildcard matching
 * Modular policy definition
-* Define constraints on resources
+* Constraints on resources
 * Typescript ready
 
 ## Quick start
@@ -89,13 +89,13 @@ permission = await accessControl.can(
 
 ### Role Based Access Control (RBAC) versus Attribute Based Access Control (ABAC)
 
-Role based authorization defines permissions in terms of roles in an organization - users, editors, authors, etc.  This is convenient, but RBAC relies on static definitions and can't use contextual information (time, location, dynamic group membership, etc) to determine access rights.  In traditional RBAC, contextual tests must be performed in other layers of an application. On the other hand, ABAC allows use of contextual information, but is also more complicated, and is [sometimes described as overkill](https://objectpartners.com/2017/06/16/abac-or-ac/ ) for solving typical problems. For more discussion, see: https://iamfortress.net/2017/02/15/ac-vs-abac/.
+Role based authorization defines permissions in terms of roles in an organization - users, editors, authors, etc.  This is convenient, but RBAC relies on static definitions and can't use contextual information (like time, location, dynamic organizational relationships, etc) to determine access rights.  In traditional RBAC, contextual tests must be performed in other layers of an application. On the other hand, ABAC allows use of contextual information, but is also more complicated, and is [sometimes described as overkill](https://objectpartners.com/2017/06/16/abac-or-ac/ ) for solving typical problems. For more discussion, see: https://iamfortress.net/2017/02/15/ac-vs-abac/.
 
 ### AccessControlPlus: RBAC with ABAC-powers
 
-This library combines useful properties of RBAC and ABAC. You define roles and permissions, making it easy to define and manage your policies, like tradition RBAC, but also implement fine-grained context-sensitive tests, like ABAC.
+This library combines useful properties of RBAC and ABAC. You grant permission in terms of roles, making it easy to define and manage your policies, like tradition RBAC, and implement fine-grained context-sensitive tests that integrate with your backend, like ABAC.
 
-The `AccessControlPlus` class provides the top-level API of this library. Use it to define role permissions (using `grant` or `deny`), add conditions using `where`, `and` and `or`, and test whether a permission (using `can`). (See [API](#API)).
+The `AccessControlPlus` class provides the top-level API of this library. Use it to define role permissions (using `grant` or `deny`), add conditions using `where`, `and` and `or`, and test whether a permission is granted (using `can`). (See [API](#API)).
 
 ```typescript
 const ac = new AccessControlPlus();
