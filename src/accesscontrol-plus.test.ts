@@ -435,9 +435,20 @@ describe('AccessControlPlus', async function () {
       it('should distinguish fields for each granted scope on the action', async function () {
         const p1 = await ac.can('user', 'Post:read:c1Field', 1);
         expect(p1.granted).toBeTruthy();
-
+        
         const p2 = await ac.can('user', 'Post:read:c2Field', 2);
+        
         expect(p2.granted).toBeTruthy();
+      });
+
+      it('should deny permission when conditions are not met', async function () {
+        const p1WrongCondition = await ac.can('user', 'Post:read:c1Field', 'condition1-should-fail');
+        expect(p1WrongCondition.granted).toBeFalsy();
+        expect(p1WrongCondition.denied).toBeTruthy();
+
+        const p2WrongCondition = await ac.can('user', 'Post:read:c2Field', 'condition1-should-fail');
+        expect(p2WrongCondition.granted).toBeFalsy();
+        expect(p2WrongCondition.denied).toBeTruthy();
       });
 
       it('should distinguish constraints for each granted scope on the action', async function () {
